@@ -149,7 +149,7 @@ class TILW_AOLimitComponent : ScriptComponent
 		SCR_HUDManagerComponent hud = SCR_HUDManagerComponent.Cast(playerController.GetHUDManagerComponent());
 		aoLimitHud = TILW_AOLimit.Cast(hud.FindInfoDisplay(TILW_AOLimit));
 		aoLimitHud.SetTime(timer);
-		aoLimitHud.Show(true,UIConstants.FADE_RATE_FAST);
+		aoLimitHud.Show(true,UIConstants.FADE_RATE_INSTANT);
 	}
 	
 	protected void PlayerInsideAO()
