@@ -183,7 +183,8 @@ class TILW_AOLimitComponent : ScriptComponent
 	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
 	protected void RpcDo_SetPoints(array<vector> points)
 	{
-		SCR_Math2D.Get2DPolygon(points3D, points2D);
+		m_points3D = points;
+		SCR_Math2D.Get2DPolygon(points, m_points2D);
 		
 		if(RplSession.Mode() == RplMode.Dedicated)
 			return;
