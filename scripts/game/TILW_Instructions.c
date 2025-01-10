@@ -347,3 +347,73 @@ class TILW_EditRespawnTicketsInstruction : TILW_BaseInstruction
 		gm.TILW_SetFactionTicketCount(m_factionKey, num);
 	}
 }
+
+[BaseContainerProps(), BaseContainerCustomTitleField("m_name")]
+class TILW_MapVisibility
+{
+	[Attribute("", UIWidgets.Auto, desc: "Faction key to alter visibility of.")]
+	string m_factionKey;
+	
+	[Attribute("", UIWidgets.Auto, desc: "Whether the map element should be visible or not to the faction.")]
+	bool m_visible;
+}
+
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Edit marker visibility")]
+class TILW_EditMarkerVisibilityInstruction : TILW_BaseInstruction
+{
+	[Attribute("", UIWidgets.Auto, desc: "Name of the affected marker.")]
+	protected string m_markerName;
+	
+	[Attribute("", UIWidgets.Auto, "Which factions the marker should be set to visible or not visible for.")]
+	protected ref array<ref TILW_MapVisibility> m_visibility;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Whether or not the marker should be visible to the empty faction.")]
+	protected bool m_visibleForEmpty;
+	
+	override void Execute()
+	{
+		IEntity entity = GetGame().GetWorld().FindEntityByName(m_markerName);
+		if (!entity) return;
+		PS_EditableMarkerComponent markerComponent = PS_EditableMarkerComponent.Cast(entity.FindComponent(PS_EditableMarkerComponent));
+		if (!markerComponent) return;
+		
+		markerComponent.SetVisibleForEmptyFaction(m_visibleForEmpty);
+		
+		SCR_FactionManager factionManager = SCR_FactionManager.Cast(GetGame().GetFactionManager());
+		for (int i = 0; i < m_visibility.Count(); ++i)
+		{
+			Faction faction = factionManager.GetFactionByKey(m_visibility[i].m_factionKey);
+			markerComponent.SetMarkerVisibleForFaction(faction, m_visibility[i].m_visible);
+		}
+	}
+}
+
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Edit mission description visibility")]
+class TILW_EditMissionDescriptionVisibilityInstruction : TILW_BaseInstruction
+{
+	[Attribute("", UIWidgets.Auto, desc: "Name of the affected mission description.")]
+	protected string m_descriptionName;
+	
+	[Attribute("", UIWidgets.Auto, "Which factions the mission description should be set to visible or not visible for.")]
+	protected ref array<ref TILW_MapVisibility> m_visibility;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Whether or not the mission description should be visible to the empty faction.")]
+	protected bool m_visibleForEmpty;
+	
+	override void Execute()
+	{
+		IEntity entity = GetGame().GetWorld().FindEntityByName(m_descriptionName);
+		if (!entity) return;
+		PS_EditableMissionDescriptionComponent descriptionComponent = PS_EditableMissionDescriptionComponent.Cast(entity.FindComponent(PS_EditableMissionDescriptionComponent));
+		if (!descriptionComponent) return;
+		
+		descriptionComponent.SetDescriptionVisibleForEmpty(m_visibleForEmpty);
+		
+		SCR_FactionManager factionManager = SCR_FactionManager.Cast(GetGame().GetFactionManager());
+		for (int i = 0; i < m_visibility.Count(); ++i)
+		{
+			Faction faction = factionManager.GetFactionByKey(m_visibility[i].m_factionKey);
+			descriptionComponent.SetDescriptionVisibleForFaction(faction, m_visibility[i].m_visible);
+		}
+	}
+}
