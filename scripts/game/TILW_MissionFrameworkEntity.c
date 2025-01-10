@@ -106,15 +106,18 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// util variables
 	protected bool m_recountScheduled = false;
-	
+
+	// pre-mission events
+	[Attribute("", UIWidgets.Object, desc: "Events to trigger before advancing to game mode. Recommend not using for AI instructions.", category: "Events")]
+	ref array<ref TILW_MissionEvent> m_preMissionEvents;	
 	
 	// mission events
-	
-	
+
+
 	[Attribute("", UIWidgets.Object, desc: "Mission Events can be triggered by combinations of flags, resulting in the execution of the events instructions", category: "Events")]
 	ref array<ref TILW_MissionEvent> m_missionEvents;
 	
-	
+		
 	// faction player count things
 	
 	[Attribute("", UIWidgets.Object, desc: "Used to set a flag when all players of a faction were killed", category: "Flags")]
@@ -141,6 +144,7 @@ class TILW_MissionFrameworkEntity: GenericEntity
 		if (!Replication.IsServer()) return; // MFE only runs on server
 		GetGame().GetCallqueue().Call(InsertListeners); // Insert listeners for player updates and game start
 		GetGame().GetCallqueue().Call(InitDefaultFlags); // Call, just to randomize time a little
+		foreach (TILW_MissionEvent mEvent : m_preMissionEvents) GetGame().GetCallqueue().Call(mEvent.EvalExpression); // Run pre-mission events
 	}
 	
 	override void EOnDeactivate(IEntity owner)
