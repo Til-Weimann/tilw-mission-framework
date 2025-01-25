@@ -55,6 +55,9 @@ class TILW_BaseTriggerEntity : GenericEntity
 	
 	[Attribute("0", UIWidgets.Auto, "After the effect is first triggered, prevent the trigger from doing any further queries. \nThis also prevents the flag from potentially being cleared again.", category: "Trigger Effect")]
 	protected bool m_stopAfterFirstChange;
+
+	[Attribute("0", UIWidgets.Auto, "Skip the first query, instead of evaluating the condition and setting the flag on first run", category: "Trigger Effect")]
+	protected bool m_skipFirstQuery;
 	
 	
 	// CLASS VARIABLES
@@ -69,7 +72,7 @@ class TILW_BaseTriggerEntity : GenericEntity
 	bool m_lastResult = false;
 	
 	//! Is this the first ever query?
-	protected bool m_firstQuery = true;
+	protected bool m_firstQuery = !m_skipFirstQuery;
 	
 	//! For how many iterations the condition has been different from the current result
 	protected int m_currentIterations = 0;
