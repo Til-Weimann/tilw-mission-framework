@@ -82,9 +82,14 @@ class TILW_EndGameInstruction: TILW_BaseInstruction
 		if (TILW_MissionFrameworkEntity.GetInstance().m_suppressGameEnd)
 			return;
 		SCR_BaseGameMode gameMode = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+
+		/* legacy - hard end logic
 		Faction faction = GetGame().GetFactionManager().GetFactionByKey(m_factionKey);
 		int fIndex = GetGame().GetFactionManager().GetFactionIndex(faction);
 		gameMode.EndGameMode(SCR_GameModeEndData.CreateSimple(m_gameOverType, -1, fIndex));
+		*/
+
+		gameMode.SetGameModeState(SCR_EGameModeState.DEBRIEFING);
 	}
 	
 	void SetKey(string key)
