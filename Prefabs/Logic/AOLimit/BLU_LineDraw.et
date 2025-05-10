@@ -1,0 +1,12 @@
+PolylineShapeEntity {
+ ID "653961538D7CCE38"
+ components {
+  BLU_LineDrawComponent "{65396153BBAFEC5D}" {
+  }
+  RplComponent "{653961538D7CCE22}" {
+   Streamable Disabled
+  }
+ }
+ IsClosed 1
+ LineColor 1 0 0 1
+}
