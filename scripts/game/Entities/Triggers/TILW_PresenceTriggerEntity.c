@@ -37,7 +37,7 @@ class TILW_PresenceTriggerEntity : TILW_BaseTriggerEntity
 			return (ratio >= m_ratioThreshold);
 	}
 	
-	override void RunQuery()
+	override void CustomQuery()
 	{
 		m_specialCount = 0;
 		
@@ -51,11 +51,16 @@ class TILW_PresenceTriggerEntity : TILW_BaseTriggerEntity
 				continue;
 			if (!m_allowDestroyed && IsEntityDestroyed(e))
 				continue;
-			if (!IsMatchingPrefab(e))
-				continue;
 			
 			m_specialCount += 1;
 		}
+	}
+	
+	// ACCESS POINTS
+	
+	void SetEntityNames(array<string> entityNames)
+	{
+		m_entityNames = entityNames;
 	}
 
 }

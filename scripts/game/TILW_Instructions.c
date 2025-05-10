@@ -79,12 +79,22 @@ class TILW_EndGameInstruction: TILW_BaseInstruction
 	
 	override void Execute()
 	{
-		if (TILW_MissionFrameworkEntity.GetInstance().m_suppressGameEnd)
-			return;
-		SCR_BaseGameMode gameMode = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
+		SCR_BaseGameMode gm = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
 		Faction faction = GetGame().GetFactionManager().GetFactionByKey(m_factionKey);
-		int fIndex = GetGame().GetFactionManager().GetFactionIndex(faction);
-		gameMode.EndGameMode(SCR_GameModeEndData.CreateSimple(m_gameOverType, -1, fIndex));
+		
+		if (!fw.m_suppressGameEnd)
+		{
+			int fIndex = GetGame().GetFactionManager().GetFactionIndex(faction);
+			gm.EndGameMode(SCR_GameModeEndData.CreateSimple(m_gameOverType, -1, fIndex));
+		}
+		else
+		{
+			SCR_GameOverScreenManagerComponent gosmc = SCR_GameOverScreenManagerComponent.Cast(gm.FindComponent(SCR_GameOverScreenManagerComponent));
+			string factionName = faction.GetFactionName();
+			string endTitle = gosmc.GetGameOverConfig().GetGameOverInfo(m_gameOverType).GetOptionalParams().m_sTitle;
+			fw.ShowGlobalHint("MISSION END", "End conditions have been met:\n" + factionName + " " + endTitle, 10, null);
+		}
 	}
 	
 	void SetKey(string key)

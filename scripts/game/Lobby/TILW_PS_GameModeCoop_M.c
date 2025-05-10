@@ -38,10 +38,8 @@ modded class PS_GameModeCoop : SCR_BaseGameMode
 	[Attribute("0", UIWidgets.Auto, "If >0, disable JIP TP this many seconds into the mission.", "0 10000 0", category: "JIP")]
 	int m_denyJIPTime;
 
-	[Attribute("100", UIWidgets.Auto, "Minimum distance to SL for JIP to be available.", category: "JIP")]
+	[Attribute("25", UIWidgets.Auto, "Minimum distance to SL for JIP to be available.", category: "JIP")]
 	protected int m_minDistance;
-
-	protected ref map<IEntity, string> m_JIP_List = new map<IEntity, string>();
 
 	[RplProp()]
 	WorldTimestamp m_startTime;
@@ -66,27 +64,18 @@ modded class PS_GameModeCoop : SCR_BaseGameMode
 		if (!player)
 			return;
 
-		string uid = GetGame().GetBackendApi().GetPlayerIdentityId(playerId);
-		if (m_JIP_List.Contains(player))
-		{
-			string lastUID = m_JIP_List.Get(player);
-			if (lastUID == uid)
-				return playerController.SetJIP(false);
-		}
-
 		ChimeraWorld world = GetGame().GetWorld();
 		WorldTimestamp currentTime = world.GetLocalTimestamp();
 		if (currentTime.LessEqual(m_startTime.PlusSeconds(120)))
 		{
 			playerController.SetJIP(false);
-			m_JIP_List.Insert(player, uid);
 			return playerController.SetJIP(false);
 		}
 
 		if (m_denyJIPTime)
 		{
 			if (currentTime.Greater(currentTime.PlusSeconds(m_denyJIPTime)))
-				return playerController.SetJIP(false, "JIP deny time reached!");
+				return playerController.SetJIP(false, "JIP deny, time limit reached!");
 		}
 
 		SCR_PlayerControllerGroupComponent groupComp = SCR_PlayerControllerGroupComponent.GetPlayerControllerComponent(playerId);
@@ -128,35 +117,19 @@ modded class PS_GameModeCoop : SCR_BaseGameMode
 		if (vehicle)
 		{
 			playerController.GetInVehicle(vehicle);
-			GetGame().GetCallqueue().CallLater(CheckPlayerJIPed, 1000, false, playerId);
 			return;
 		}
 
 		float distance = vector.Distance(player.GetOrigin(), targetEntity.GetOrigin());
 		if (distance < m_minDistance)
-			return playerController.SetJIP(false);
+			return playerController.SetJIP(false, "JIP Deny, close to team mates.");
 
 		vector transform[4];
 		targetEntity.GetTransform(transform);
 
-			vector behindPosition = transform[3] - (transform[2] * 0.5);
+		vector behindPosition = transform[3] - (transform[2] * 0.5);
 
 		playerController.Teleport(behindPosition);
-		m_JIP_List.Insert(player, uid);
-	}
-
-	protected void CheckPlayerJIPed(int playerId)
-	{
-		IEntity player = GetGame().GetPlayerManager().GetPlayerControlledEntity(playerId);
-		if (!player)
-			return;
-
-		IEntity vehicle = CompartmentAccessComponent.GetVehicleIn(player);
-		if (vehicle)
-		{
-			string uid = GetGame().GetBackendApi().GetPlayerIdentityId(playerId);
-			m_JIP_List.Insert(player, uid);
-		}
 	}
 }
 

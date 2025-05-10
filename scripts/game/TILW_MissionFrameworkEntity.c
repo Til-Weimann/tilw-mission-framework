@@ -34,6 +34,9 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	{
 		if (s_Instance == this)
 			s_Instance = null;
+		
+		if (Replication.IsServer())
+			RemoveListeners();
 	}
 	
 	
@@ -89,10 +92,10 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			missionEvent.EvalExpression();
 	}
 	
-	// Intended for reading only, for writing use AdjustMissionFlag instead!
-	set<string> GetFlagSet()
+	//! Returns a complete copy of the current flag set. For writing, always use AdjustMissionFlag! For reading individual flags, use IsMissionFlag.
+	set<string> GetFlagSetCopy()
 	{
-		return m_flagSet;
+		return set<string>.Cast(m_flagSet.Clone());
 	}
 	
 	// ----- FLAG REPLICATION -----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -175,7 +178,7 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// DEBUG
 	
-	[Attribute("0", UIWidgets.Auto, desc: "Should TILW_EndGameInstructions be prevented from actually ending the game?", category: "Debug")]
+	[Attribute("0", UIWidgets.Auto, desc: "Prevent the TILW_EndGameInstructions from actually ending the game, and display a hint message instead.", category: "Debug")]
 	bool m_suppressGameEnd;
 	
 
@@ -184,31 +187,21 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);
+		Print("TILWMF | Framework EOnInit()");
+		
+		if (!GetGame().InPlayMode())
+			return;
+		
 		m_rplComp = RplComponent.Cast(FindComponent(RplComponent));
 		GetGame().GetCallqueue().CallLater(InitFlagReplication, 1000, false);
-	}
-	
-	override void EOnActivate(IEntity owner)
-	{
-		super.EOnActivate(owner);
 		
-		Print("TILWMF | Framework EOnActivate()");
 		if (m_rplComp.IsProxy())
 			return;
 		
 		GetGame().GetCallqueue().Call(InsertListeners); // Insert listeners for player updates and game start
-		GetGame().GetCallqueue().Call(InitDefaultFlags); // Call, just to randomize time a little
+		GetGame().GetCallqueue().Call(InitRandomFlags); // Call, just to randomize time a little
 		
 		GetGame().GetCallqueue().CallLater(RecheckConditions, 10, false);
-	}
-	
-	override void EOnDeactivate(IEntity owner)
-	{
-		super.EOnDeactivate(owner);
-		Print("TILWMF | Framework EOnDeactivate()");
-		if (!Replication.IsServer())
-			return;
-		GetGame().GetCallqueue().Call(RemoveListeners);
 	}
 	
 	protected void InsertListeners()
@@ -233,7 +226,7 @@ class TILW_MissionFrameworkEntity: GenericEntity
 		gamemode.GetOnGameStart().Remove(GameStateChange);
 	}
 	
-	protected void InitDefaultFlags()
+	protected void InitRandomFlags()
 	{
 		foreach (TILW_BaseRandomFlag rf : m_randomFlags)
 			rf.Evaluate();
@@ -568,6 +561,3 @@ typedef ScriptInvokerBase<TILW_ScriptInvokerStringBoolMethod> TILW_ScriptInvoker
 
 // List of things I may still work on:
 // - Better notifications
-// - Drawn AO Limit
-// - Polyline triggers
-// - Entity Spawners

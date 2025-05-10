@@ -183,42 +183,7 @@ class TILW_AOLimitComponent : ScriptComponent
 
 		if (!m_factionKeys.IsEmpty() && !m_factionKeys.Contains(faction.GetFactionKey()))
 			return false;
-		
-		if (IsGroupIgnored(player))
-			return false;
 
-		return true;
-	}
-	
-	protected bool IsGroupIgnored(SCR_ChimeraCharacter cc)
-	{
-		
-		return false;
-		
-		if (m_ignoredGroups.IsEmpty())
-			return false;
-		Print("adsdas");
-		ChimeraAIControlComponent aicc = ChimeraAIControlComponent.Cast(cc.FindComponent(ChimeraAIControlComponent));
-		if (!aicc)
-			return false;
-		Print("adsdas2");
-		AIAgent a = aicc.GetControlAIAgent();
-		if (!a)
-			return false;
-		Print("adsdas3");
-		SCR_AIGroup g = SCR_AIGroup.Cast(a.GetParentGroup());
-		Print(g);
-		if (!g)
-			return false;
-		Print(g.GetName());
-		return false;
-		if (!g)
-			return false;
-		if (!g.m_BotsGroup)
-			return false;
-		Print(g.m_BotsGroup);
-		if (!m_ignoredGroups.Contains(g.m_BotsGroup.GetName()))
-			return false;
 		return true;
 	}
 
@@ -276,6 +241,12 @@ class TILW_AOLimitComponent : ScriptComponent
 		m_timeLeft = m_killTimer;
 		if (m_aoLimitDisplay)
 			m_aoLimitDisplay.Show(false, UIConstants.FADE_RATE_INSTANT);
+	}
+	
+	override void OnDelete(IEntity owner)
+	{
+		PlayerEntersAO();
+		super.OnDelete(owner);
 	}
 
 	void SetFactions(array<string> factions)

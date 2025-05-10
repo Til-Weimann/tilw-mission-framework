@@ -8,23 +8,14 @@ class TILW_BaseTriggerEntity : GenericEntity
 
 	// QUERY SETTINGS
 
-	[Attribute("25", UIWidgets.Auto, "Radius of sphere query", category: "Trigger Query")]
+	[Attribute("25", UIWidgets.Auto, "Radius of sphere trigger. If the parent entity is a polyline with 3+ points, the radius ignored and the trigger operates in polyline mode.", category: "Trigger Query")]
 	protected float m_queryRadius;
 
-	[Attribute("10", UIWidgets.Auto, "Period of query in seconds", category: "Trigger Query", params: "0.25 inf 0.25")]
-	protected float m_queryPeriod;
-
-	[Attribute("1", UIWidgets.Auto, "Only run on the server", category: "Trigger Query")]
-	protected bool m_onlyOnServer;
+	[Attribute("10", UIWidgets.Auto, "Period of query in seconds. OBSOLETE, WILL BE REMOVED SOON.", category: "Deprecated", params: "0.25 inf 0.25")]
+	protected float m_queryPeriod; // delete soon
 
 	[Attribute("0", UIWidgets.Auto, "Skip the discovery query (which otherwise determines the initial state immediately, skipping capture iterations)", category: "Trigger Query")]
 	protected bool m_skipFirstQuery;
-
-
-	// FILTER SETTINGS
-
-	[Attribute("", UIWidgets.ResourceAssignArray, "If defined, only these specific character prefabs (and potential children) will be taken into account.", "et", category: "Trigger Filter")]
-	protected ref array<ResourceName> m_prefabFilter;
 
 
 	// CONDITION SETTINGS
@@ -35,8 +26,11 @@ class TILW_BaseTriggerEntity : GenericEntity
 
 	// STATUS SETTINGS
 
-	[Attribute("1", UIWidgets.Auto, "For how many query periods the condition has to be different from the current result, in order for the result to change. \nCan be used for capture timers (time = Capture Iterations * Query Period). \nWhile not different, any change progress slowly returns to 0. \nIf 1, the trigger is captured instantly once the condition is met.", category: "Trigger Status", params: "1 inf")]
-	protected int m_captureIterations;
+	[Attribute("1", UIWidgets.Auto, "OBSOLETE, WILL BE REMOVED SOON. Use capture time instead.", category: "Deprecated", params: "1 inf")]
+	protected int m_captureIterations; // delete soon
+	
+	[Attribute("0", UIWidgets.Auto, "How many seconds it takes for the trigger state to change. \nWhen progress is interrupted, it starts ticking back down towards zero. \nIf 0, the trigger is captured instantly once the condition is met.", category: "Trigger Status", params: "0 inf")]
+	protected float m_captureTime;
 
 	[Attribute("0", UIWidgets.Auto, "Whether to display a message whenever the triggers capture status changes.", category: "Trigger Status")]
 	protected bool m_sendStatusMessages;
@@ -64,7 +58,7 @@ class TILW_BaseTriggerEntity : GenericEntity
 
 	//! How many matching entities are currently in the trigger
 	protected int m_totalCount;
-
+	
 	//! How many matching entities are currently in the trigger, which also fulfill a special condition (faction etc.)
 	protected int m_specialCount;
 
@@ -74,21 +68,27 @@ class TILW_BaseTriggerEntity : GenericEntity
 	//! Is this the first ever query?
 	protected bool m_firstQuery = true;
 
-	//! For how many iterations the condition has been different from the current result
-	protected int m_currentIterations = 0;
-
 	//! Current status of the trigger, used for status updates
 	protected int m_currentStatus = -1;
+	
+	//! Is the trigger currently active?
+	protected bool m_isActive = true;
+	
+	//! Is the trigger currently waiting for activation?
+	protected bool m_isActivating = true;
+	
+	//! Copy of the polyline points
+	protected ref array<vector> m_points3D = {};
+	protected ref array<vector> m_pointsOverride = {};
 
 
-
-	// EVENTS
+	// ACCESS POINTS
 
 	//! Event: Result changed - Occurs when the trigger condition was checked after a query, and the result is different from the last run \nTo be used by entity scripts
 	event void OnResultChanged(bool result);
 
 	protected ref ScriptInvokerBool m_OnResultChanged;
-
+	
 	//! Provides a ScriptInvoker for outsiders that want to subscribe to trigger result changes.
 	ScriptInvokerBool GetOnResultChanged()
 	{
@@ -96,49 +96,118 @@ class TILW_BaseTriggerEntity : GenericEntity
 			m_OnResultChanged = new ScriptInvokerBool();
 		return m_OnResultChanged;
 	}
+	
+	//! Allows changing the query radius via script
+	void SetRadius(float radius)
+	{
+		m_queryRadius = radius;
+	}
+	
+	//! Allows overriding the triggers polyline points via script
+	void SetPoints(array<vector> points3D)
+	{
+		m_pointsOverride = m_points3D;
+	}
+	
+	//! Enable / disable the trigger. Activation does not take effect immediately.
+	void SetActive(bool active)
+	{
+		if (!m_isActive && active)
+			m_isActivating = true;
+		else if (m_isActive && !active)
+			m_isActive = false;
+	}
+	
+	
+	// INIT
+	
+	override void EOnInit(IEntity owner)
+	{
+		super.EOnInit(owner);
+		if (!Replication.IsServer())
+			return;
+		
+		GetPolylinePoints();
+		
+		if (!GetGame().InPlayMode())
+			return;
+		
+		if (m_skipFirstQuery)
+			m_firstQuery = false;
+		
+		TILW_TriggerSystem.GetInstance().InsertTrigger(this);
+	}
+	
+	void ~TILW_BaseTriggerEntity()
+	{
+		if (!GetGame().InPlayMode())
+			return;
+		
+		TILW_TriggerSystem ts = TILW_TriggerSystem.GetInstance();
+		if (ts)
+			ts.RemoveTrigger(this);
+	}
 
 
 	// TRIGGER LOGIC
-
-	override void EOnActivate(IEntity owner)
+	
+	//! Eval starts an evaluation round and resets counts
+	void Eval()
 	{
-		super.EOnActivate(owner);
-
-		if (m_onlyOnServer && !Replication.IsServer())
-			return;
-		if (m_skipFirstQuery)
-			m_firstQuery = false;
-
-		// Short delay because AI may not have been spawned yet
-		GetGame().GetCallqueue().CallLater(QueryLoop, 5 * 1000, false);
+		// Activation and evaluation
+		if (m_isActive)
+			EvaluateState();
+		else if (m_isActivating)
+		{
+			m_isActive = true;
+			m_isActivating = false;
+		}
+		// Update polyline
+		if (!m_pointsOverride.IsEmpty())
+			m_points3D = m_pointsOverride;
+		else
+			GetPolylinePoints();
+		// Reset count
+		m_totalCount = 0;
+		m_specialCount = 0;
 	}
+	
+	protected int m_lastEvaluation = 0;
+	protected int m_changeProgress = 0;
 
-	// QueryLoop() is responsible for everything that happens within each query cycle
-	protected void QueryLoop()
+	//! EvaluateState is responsible for updating the state of the trigger
+	protected void EvaluateState()
 	{
-		RunQuery();
+		CustomQuery(); // Perform custom query if there is one
+		
+		int currentTime = System.GetTickCount();
+		int deltaTime = currentTime - m_lastEvaluation;
+		m_lastEvaluation = currentTime;
+		
+		float changeTime;
+		if (m_captureTime == 0 && m_captureIterations > 1)
+			changeTime = m_captureIterations * m_queryPeriod; // Still using the old parameters
+		else	
+			changeTime = m_captureTime;
+		
 		bool condition = EvaluateCondition();
 
 		bool isDifferent = (condition != m_lastResult);
-		bool shouldChange = isDifferent && (m_currentIterations + 1 >= m_captureIterations) && !m_firstQuery; // changed
-
-		// changed - when shouldChange is true, old is not new, and it's not the first query
-		// changing - when old is not new, but shouldChange is false
-		// no longer changing - happens when old status was changing, but now old is new again
+		bool shouldChange = isDifferent && ((m_changeProgress + deltaTime) >= changeTime * 1000) && !m_firstQuery;
 
 		if (shouldChange) {
 			// Result is changing now
 			UpdateProgressStatus(0 + 3 * (int) ((m_lastResult && m_comparisonMode == 1) || (!m_lastResult && m_comparisonMode == 0)));
-			m_currentIterations = 0;
+			m_changeProgress = 0;
 		} else if (isDifferent && !m_firstQuery) {
-			// Result is not yet changing, but soon will if nothing changes
+			// Result is not yet changing, but eventually will if nothing changes
 			UpdateProgressStatus(1 + 3 * (int) ((m_lastResult && m_comparisonMode == 1) || (!m_lastResult && m_comparisonMode == 0)));
-			m_currentIterations += 1;
+			m_changeProgress += deltaTime; // Move towards change
 		}
 		if ((m_currentStatus == 1 || m_currentStatus == 4) && !isDifferent) {
-			// Result is now not projected to change, but was before
+			// Result is no longer projected to change
 			UpdateProgressStatus(2 + 3 * (int) ((m_lastResult && m_comparisonMode == 1) || (!m_lastResult && m_comparisonMode == 0)));
-			m_currentIterations = Math.Max(0, m_currentIterations-1);
+			m_changeProgress = Math.Max(0, m_changeProgress - deltaTime); // Trend back towards 0
 		}
 
 		if (shouldChange || m_firstQuery) {
@@ -156,75 +225,43 @@ class TILW_BaseTriggerEntity : GenericEntity
 			if (m_OnResultChanged)
 				m_OnResultChanged.Invoke(condition); // Invoke ScriptInvoker
 			if (m_stopAfterFirstChange)
-				return; // Perhaps stop doing queries
+				SetActive(false); // Perhaps stop doing queries
 		}
 
 		if (m_firstQuery)
 			m_firstQuery = false;
-		GetGame().GetCallqueue().CallLater(QueryLoop, m_queryPeriod * 1000, false);
 	}
+	
+	// Could turn some of these into entity script events
 
-	//! RunQuery() resets the count and starts a new query
-	protected void RunQuery()
-	{
-		m_totalCount = 0;
-		m_specialCount = 0;
-		GetGame().GetWorld().QueryEntitiesBySphere(GetOrigin(), m_queryRadius, AddEntity, FilterEntity);
-	}
-
-
-	//! EvaluateCondition checks if the trigger condition is true, and returns the result.
+	//! EvaluateCondition determines if the trigger condition is met. It should be overridden with some count comparison.
 	protected bool EvaluateCondition();
-
-
-	// HELPER METHODS
-
-	//! AddEntity determines what happens when an entity has passed through the filter.
-	protected bool AddEntity(IEntity e);
-
-	//! FilterEntity is responsible for filtering out entities that do not meet the triggers requirements.
-	protected bool FilterEntity(IEntity e)
+	
+	//! TotalFilter checks if the character is relevant to the trigger, e. g. being alive or inside of it
+	protected bool TotalFilter(SCR_ChimeraCharacter cc);
+	
+	//! SpecialFilter checks if the character also fulfills a special condition, e. g. having some faction
+	protected bool SpecialFilter(SCR_ChimeraCharacter cc);
+	
+	//! CustomQuery can be overridden with custom logic which is run before evaluation, independent of the trigger system
+	protected void CustomQuery();
+	
+	//! ProcessCharacter passes the trigger characters, which are counted according to the filters
+	void ProcessCharacter(SCR_ChimeraCharacter cc)
 	{
-		if (!IsMatchingClass(e))
-			return false;
-		if (!IsMatchingPrefab(e))
-			return false;
-
-		return true;
+		if (!m_isActive)
+			return;
+		if (!TotalFilter(cc))
+			return;
+		m_totalCount += 1;
+		if (!SpecialFilter(cc))
+			return;
+		m_specialCount += 1;
 	}
 
-	//! IsMatchingClass can be overwritten to check if the entity is of a certain class, intended for filtering.
-	protected bool IsMatchingClass(IEntity e);
-
-	//! IsMatchingPrefab checks if the entity was created from a prefab included in the m_prefabFilter array.
-	protected bool IsMatchingPrefab(IEntity e)
-	{
-		if (m_prefabFilter.IsEmpty())
-			return true;
-
-		EntityPrefabData epd = e.GetPrefabData();
-		if (!epd)
-			return false;
-		BaseContainer bc = epd.GetPrefab();
-		if (!bc)
-			return false;
-
-		foreach (ResourceName rn : m_prefabFilter)
-		{
-			if (SCR_BaseContainerTools.IsKindOf(bc, rn))
-				return true;
-		}
-
-		return false;
-	}
-
-	//! IsEntityDestroyed checks if the entity is still alive. This works for anything with an SCR_DamageManagerComponent.
-	protected bool IsEntityDestroyed(IEntity entity)
-	{
-		SCR_DamageManagerComponent damageManager = SCR_DamageManagerComponent.GetDamageManager(entity);
-		return (damageManager && damageManager.GetState() == EDamageState.DESTROYED);
-	}
-
+	
+	// TRIGGER STATUS
+	
 	//! UpdateProgressStatus updated the capture status, and potentially sends a status message to players
 	protected void UpdateProgressStatus(int status) // 0 = was set, 1 = is changing 2 = is no longer changing
 	{
@@ -239,6 +276,7 @@ class TILW_BaseTriggerEntity : GenericEntity
 		m_currentStatus = status;
 	}
 
+	//! GetStatusMessage gets a status message from the array, with inserted location name.
 	protected string GetStatusMessage(int status)
 	{
 		if (status > m_statusMessages.Count() - 1) {
@@ -246,7 +284,8 @@ class TILW_BaseTriggerEntity : GenericEntity
 		}
 		return string.Format(m_statusMessages[status], "%1", m_locationName);
 	}
-
+	
+	//! SendStatusMessage gets a status message from the array, with inserted location name.
 	protected void SendStatusMessage(string message)
 	{
 		Print("TILWMF | Sending trigger status message: " + message);
@@ -254,13 +293,56 @@ class TILW_BaseTriggerEntity : GenericEntity
 		array<string> fkeys = new array<string>;
 		mfe.ShowGlobalHint("Objective Status", message, 5, fkeys);
 	}
-
-	void SetRadius(float radius)
+	
+	
+	// HELPERS
+	
+	//! Load points from the parent polyline, if one exists
+	protected void GetPolylinePoints()
 	{
-		m_queryRadius = radius;
+		PolylineShapeEntity pse = PolylineShapeEntity.Cast(GetParent());
+		if (!pse)
+			return;
+		m_points3D = {};
+		pse.GetPointsPositions(m_points3D);
+		for (int i = 0; i < m_points3D.Count(); i++)
+			m_points3D[i] = pse.CoordToParent(m_points3D[i]);
 	}
 	
-	// DEBUG
+	//! Should the trigger operate in polyline mode?
+	protected bool IsPolylineTrigger()
+	{
+		return (m_points3D.Count() >= 3);
+	}
+	
+	//! Checks if a position is within the trigger shape
+	protected bool IsWithinShape(vector pos)
+	{
+		if (!IsPolylineTrigger())
+			return (vector.Distance(GetOrigin(), pos) <= m_queryRadius);
+		return Math2D.IsPointInPolygonXZ(m_points3D, pos);
+	}
+	
+	//! GetFactionKey gets a characters faction key. If it has no faction, "" is returned.
+	static FactionKey GetFactionKey(SCR_ChimeraCharacter cc)
+	{
+		if (!cc.m_pFactionComponent)
+			return "";
+		Faction f = cc.m_pFactionComponent.GetAffiliatedFaction();
+		if (!f)
+			return "";
+		return f.GetFactionKey();
+	}
+	
+	//! IsEntityDestroyed checks if the entity is still alive. This works for anything with an SCR_DamageManagerComponent.
+	static bool IsEntityDestroyed(IEntity entity)
+	{
+		SCR_DamageManagerComponent damageManager = SCR_DamageManagerComponent.GetDamageManager(entity);
+		return (damageManager && damageManager.GetState() == EDamageState.DESTROYED);
+	}
+	
+	
+	// WORKBENCH
 
 	[Attribute("1", UIWidgets.Auto, "Draw faces of debug sphere", category: "Debug")]
 	protected bool m_drawShapeSurface;
@@ -281,11 +363,14 @@ class TILW_BaseTriggerEntity : GenericEntity
 	override void _WB_AfterWorldUpdate(float timeSlice)
 	{
 		super._WB_AfterWorldUpdate(timeSlice);
-		DrawDebugShape();
+		GetPolylinePoints();
+		if (!IsPolylineTrigger())
+			DrawDebugShape();
+		// GenerateAreaMesh
 	}
 
 	//! DrawDebugShape() draws a debug sphere, useful for previeving the query radius.
-	protected void DrawDebugShape()
+	protected void DrawDebugShape(bool polyline = false)
 	{
 		Shape dbgShape = null;
 
@@ -302,7 +387,9 @@ class TILW_BaseTriggerEntity : GenericEntity
 
 		dbgShape = Shape.CreateSphere(c.PackToInt(), flags, GetOrigin(), m_queryRadius);
 	}
+	
 #endif
+	
 }
 
 enum TILW_EComparisonMode

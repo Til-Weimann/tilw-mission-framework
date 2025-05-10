@@ -11,9 +11,6 @@ class TILW_FactionTriggerEntity : TILW_BaseTriggerEntity
 	[Attribute("0", UIWidgets.Auto, "If true, only the ratio between players should matter. AI characters are ignored completely.", category: "Trigger Filter")]
 	protected bool m_playersOnly;
 
-	[Attribute("1", UIWidgets.Auto, "If true, exclude playable characters that are not currently slotted.", category: "Trigger Filter")]
-	protected bool m_excludeUnusedPlayables;
-
 	[Attribute("", UIWidgets.ResourceAssignArray, "Any of these faction keys will be completely ignored by the trigger.", category: "Trigger Filter")]
 	protected ref array<string> m_ignoredFactions;
 
@@ -38,62 +35,46 @@ class TILW_FactionTriggerEntity : TILW_BaseTriggerEntity
 		else
 			return (m_comparisonMode && ratio >= m_ratioThreshold);
 	}
-
-
-	// HELPER METHODS
-
-	override bool AddEntity(IEntity e)
+	
+	override bool TotalFilter(SCR_ChimeraCharacter cc)
 	{
-		SCR_ChimeraCharacter cc = SCR_ChimeraCharacter.Cast(e);
-		if (!cc)
-			return true;
-		if (!cc.m_pFactionComponent)
-			return true;
-		Faction f = cc.m_pFactionComponent.GetAffiliatedFaction();
-		if (!f)
-			return true;
-		string fKey = f.GetFactionKey();
-		if (m_ignoredFactions.Contains(fKey))
-			return true;
-		m_totalCount += 1;
-		if (fKey == m_ownerFactionKey)
-			m_specialCount += 1;
-		return true;
-	}
-
-	override bool FilterEntity(IEntity e)
-	{
-		if (!super.FilterEntity(e))
-			return false;
-
-		if (IsEntityDestroyed(e))
-			return false;
-
-		if (!EntityUtils.IsPlayer(e)) {
+		if (IsEntityDestroyed(cc))
+			return false; // Not alive
+		if (!IsWithinShape(cc.GetOrigin()))
+			return false; // Not within shape
+		if (!EntityUtils.IsPlayer(cc))
+		{
 			if (m_playersOnly)
 				return false; // Only players allowed
-			PS_PlayableComponent pc = PS_PlayableComponent.Cast(e.FindComponent(PS_PlayableComponent));
-			if (m_excludeUnusedPlayables && pc && pc.GetPlayable())
+			PS_PlayableComponent pc = PS_PlayableComponent.Cast(cc.FindComponent(PS_PlayableComponent));
+			if (pc && pc.GetPlayable())
 				return false; // Not slotted
 		}
-
+		FactionKey fkey = GetFactionKey(cc);
+		if (fkey == "" || m_ignoredFactions.Contains(fkey))
+			return false; // Spectator, or ignored faction
 		return true;
 	}
-
-	override bool IsMatchingClass(IEntity e)
+	
+	override bool SpecialFilter(SCR_ChimeraCharacter cc)
 	{
-		SCR_ChimeraCharacter cc = SCR_ChimeraCharacter.Cast(e);
-		return (cc);
+		FactionKey fkey = GetFactionKey(cc);
+		if (GetFactionKey(cc) == m_ownerFactionKey)
+			return true;
+		return false;
 	}
-
+	
 	override string GetStatusMessage(int status)
 	{
 		string factionName = GetGame().GetFactionManager().GetFactionByKey(m_ownerFactionKey).GetFactionName();
 		return string.Format(super.GetStatusMessage(status), factionName);
 	}
+	
+	// ACCESS POINTS
 
 	void SetOwnerFaction(string key)
 	{
 		m_ownerFactionKey = key;
 	}
+	
 }

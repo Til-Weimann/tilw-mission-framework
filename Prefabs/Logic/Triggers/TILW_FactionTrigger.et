@@ -4,6 +4,8 @@ TILW_FactionTriggerEntity {
   RplComponent "{61F339AC6681CBF1}" {
    Streamable Disabled
   }
+  Hierarchy "{6530DDECC987888D}" {
+  }
  }
  m_statusMessages {
   "The %1 has taken control of %2." "The %1 is taking control of %2." "The %1 is no longer taking control of %2." "The %1 has lost control of %2." "The %1 is losing control of %2." "The %1 is no longer losing control of %2."

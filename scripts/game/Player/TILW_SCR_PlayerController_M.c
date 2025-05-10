@@ -19,7 +19,7 @@ modded class SCR_PlayerController : PlayerController
 	{
 		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
 		if (fw)
-			foreach (string name : fw.GetFlagSet())
+			foreach (string name : fw.GetFlagSetCopy())
 				Rpc(RpcDo_SetMissionFlag, name);
 	};
 	

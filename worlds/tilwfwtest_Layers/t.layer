@@ -1,0 +1,21 @@
+TILW_FactionTriggerEntity sdas1 : "{8C576D46F6579229}Prefabs/Logic/Triggers/TILW_FactionTrigger.et" {
+ coords 125.533 1 84.939
+ m_queryRadius 10
+ m_sendStatusMessages 1
+ m_flagName "OBJ_B"
+ m_ownerFactionKey "US"
+}
+$grp SCR_IndestructibleEnvironmentalEntity : "{F281250F8F8E3755}Prefabs/Structures/Infrastructure/Naval/Breakwater/BreakwaterStone_01_stack_wall.et" {
+ {
+  coords 106.845 0 138.75
+  angleY -86.447
+ }
+ {
+  coords 114.243 0 110.881
+  angleY -127.406
+ }
+ {
+  coords 120.954 0 161.275
+  angleY -43.38
+ }
+}

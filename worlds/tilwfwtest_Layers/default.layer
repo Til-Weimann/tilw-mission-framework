@@ -20,7 +20,7 @@ Vehicle M1025_armed_M2HB1 : "{3EA6F47D95867114}Prefabs/Vehicles/Wheeled/M998/M10
  coords 95.827 1 127.344
 }
 Vehicle hmm : "{4A71F755A4513227}Prefabs/Vehicles/Wheeled/M998/M1025.et" {
- coords 104.839 1 113.459
+ coords 95.076 1 119.969
  angleY -153.412
 }
 Vehicle uh : "{70BAEEFC2D3FEE64}Prefabs/Vehicles/Helicopters/UH1H/UH1H.et" {
@@ -44,6 +44,7 @@ TILW_PrefabSpawnerEntity : "{7F10372CF1CA1175}Prefabs/Utils/TILW_PrefabSpawner.e
  m_pregameSpawn 1
 }
 TILW_PresenceTriggerEntity : "{826E6F2246328952}Prefabs/Logic/Triggers/TILW_PresenceTrigger.et" {
+ Flags 2097155
  coords 89.542 1 79.121
  m_captureIterations 2
  m_sendStatusMessages 1
@@ -60,13 +61,6 @@ SCR_ChimeraCharacter : "{84029128FA6F6BB9}Prefabs/Characters/Factions/BLUFOR/US_
   }
  }
  coords 113.331 1 104.555
-}
-TILW_FactionTriggerEntity sdas : "{8C576D46F6579229}Prefabs/Logic/Triggers/TILW_FactionTrigger.et" {
- coords 9.784 1 244.278
- m_queryRadius 10
- m_sendStatusMessages 1
- m_flagName "OBJ_B"
- m_ownerFactionKey "US"
 }
 TILW_MissionFrameworkEntity : "{8F846D0FD5D6EA51}Prefabs/MP/TILW_MissionFramework.et" {
  coords 69.217 1 186.542

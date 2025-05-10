@@ -4,6 +4,8 @@ TILW_ExtractionTriggerEntity {
   RplComponent "{633E1DD2ADA6A049}" {
    Streamable Disabled
   }
+  Hierarchy "{653130F6BF070948}" {
+  }
  }
  m_statusMessages {
   "The %1 has extracted to %2." "The %1 is extracting to %2." "The %1 is no longer extracting to %2." "The %1 has stopped extraction to %2." "The %1 is stopping extraction to %2." "The %1 is no longer stopping extraction to %2."

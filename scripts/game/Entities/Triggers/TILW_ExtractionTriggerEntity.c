@@ -9,6 +9,9 @@ class TILW_ExtractionTriggerEntity : TILW_BaseTriggerEntity
 	// FILTER SETTINGS
 
 	// CONDITION SETTINGS
+	
+	[Attribute("1", UIWidgets.Auto, "If true, only the ratio between players should matter. AI characters are ignored completely.", category: "Trigger Filter")]
+	protected bool m_playersOnly;
 
 	[Attribute("", UIWidgets.Auto, "Which faction is being examined?", category: "Trigger Condition")]
 	protected string m_factionKey;
@@ -18,43 +21,6 @@ class TILW_ExtractionTriggerEntity : TILW_BaseTriggerEntity
 
 
 	// TRIGGER LOGIC
-
-	override void RunQuery()
-	{
-		m_totalCount = 0;
-		m_specialCount = 0;
-
-		array<int> playerIds = {};
-		GetGame().GetPlayerManager().GetPlayers(playerIds);
-
-		SCR_FactionManager factionManager = SCR_FactionManager.Cast(GetGame().GetFactionManager());
-		foreach (int playerId : playerIds)
-		{
-			IEntity controlled = GetGame().GetPlayerManager().GetPlayerControlledEntity(playerId);
-			if (!controlled)
-				continue;
-			SCR_ChimeraCharacter cc = SCR_ChimeraCharacter.Cast(controlled);
-			if (!cc)
-				continue;
-			if (!SCR_AIDamageHandling.IsAlive(controlled))
-				continue;
-
-			Faction f = factionManager.GetPlayerFaction(playerId);
-			if (!f)
-				continue;
-			string fkey = f.GetFactionKey();
-			if (fkey != m_factionKey)
-				continue;
-
-			if (!IsMatchingPrefab(controlled))
-				continue;
-
-			m_totalCount += 1;
-			if (vector.Distance(controlled.GetOrigin(), GetOrigin()) <= m_queryRadius)
-				m_specialCount += 1;
-
-		}
-	}
 
 	override bool EvaluateCondition()
 	{
@@ -66,13 +32,42 @@ class TILW_ExtractionTriggerEntity : TILW_BaseTriggerEntity
 		else
 			return (ratio >= m_ratioThreshold);
 	}
-
-
-	// HELPER METHODS
+	
+	override bool TotalFilter(SCR_ChimeraCharacter cc)
+	{
+		if (IsEntityDestroyed(cc))
+			return false; // Not alive
+		if (!EntityUtils.IsPlayer(cc))
+		{
+			if (m_playersOnly)
+				return false; // Only players allowed
+			PS_PlayableComponent pc = PS_PlayableComponent.Cast(cc.FindComponent(PS_PlayableComponent));
+			if (pc && pc.GetPlayable())
+				return false; // Not slotted
+		}
+		return true;
+	}
+	
+	override bool SpecialFilter(SCR_ChimeraCharacter cc)
+	{
+		if (!IsWithinShape(cc.GetOrigin()))
+			return false; // Not within shape
+		FactionKey fkey = GetFactionKey(cc);
+		if (GetFactionKey(cc) == m_factionKey)
+			return true;
+		return false;
+	}
 
 	override string GetStatusMessage(int status)
 	{
 		string factionName = GetGame().GetFactionManager().GetFactionByKey(m_factionKey).GetFactionName();
 		return string.Format(super.GetStatusMessage(status), factionName);
+	}
+	
+	// ACCESS POINTS
+	
+	void SetFaction(string key)
+	{
+		m_factionKey = key;
 	}
 }
