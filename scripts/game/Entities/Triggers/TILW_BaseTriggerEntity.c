@@ -121,6 +121,11 @@ class TILW_BaseTriggerEntity : GenericEntity
 	
 	// INIT
 	
+	void TILW_BaseTriggerEntity(IEntitySource src, IEntity parent)
+	{
+		SetEventMask(EntityEvent.INIT);
+	}
+	
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);

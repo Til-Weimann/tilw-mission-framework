@@ -37,7 +37,6 @@ TILW_PrefabSpawnerEntity : "{7F10372CF1CA1175}Prefabs/Utils/TILW_PrefabSpawner.e
  coords 55.473 1 179.344
  angleY 16.518
  m_prefab "{C012BB3488BEA0C2}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et"
- m_conditionFlag "OBJ_B"
  m_spawnTimings {
   0 10
  }

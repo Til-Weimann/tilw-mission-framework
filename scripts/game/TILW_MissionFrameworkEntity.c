@@ -28,6 +28,7 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	void TILW_MissionFrameworkEntity(IEntitySource src, IEntity parent)
 	{
 		s_Instance = this;
+		SetEventMask(EntityEvent.INIT);
 	}
 	
 	void ~TILW_MissionFrameworkEntity()

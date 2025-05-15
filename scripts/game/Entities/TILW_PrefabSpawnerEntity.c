@@ -28,10 +28,15 @@ class TILW_PrefabSpawnerEntity : GenericEntity
 	[Attribute("", UIWidgets.Object, desc: "If the prefab is a vehicle, define its crew - you may drag existing configs into here.", category: "Configuration")]
 	protected ref TILW_CrewConfig m_crewConfig;
 	
+	void TILW_PrefabSpawnerEntity(IEntitySource src, IEntity parent)
+	{
+		SetEventMask(EntityEvent.INIT);
+	}
+	
 	override void EOnInit(IEntity owner)
 	{
 		super.EOnInit(owner);
-		if (!Replication.IsServer())
+		if (!GetGame().InPlayMode() && !Replication.IsServer())
 			return;
 		GetGame().GetCallqueue().CallLater(Init, 1000, false);
 	}

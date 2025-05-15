@@ -17,19 +17,4 @@ $grp SCR_AIGroup : "{DDF3799FA1387848}Prefabs/Groups/BLUFOR/Group_US_RifleSquad.
  {
   coords 14.968 1 168.193
  }
- {
-  coords 14.968 1 172.116
- }
- {
-  coords 14.968 1 181.68
- }
- {
-  coords 14.968 1 184.637
- }
- {
-  coords 14.968 1 193.369
- }
- {
-  coords 14.968 1 195.932
- }
 }
