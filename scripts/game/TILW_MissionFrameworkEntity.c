@@ -158,6 +158,11 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// ----- ATTRIBUTES -----------------------------------------------------------------------------------------------------------------------------------------------------------
 	
+	// OPTIONS
+	
+	[Attribute("30", UIWidgets.Object, desc: "How many seconds should safe start last?", category: "Options", params: "0 99999999 0")]
+	int m_safeStartTime;
+	
 	// EVENTS
 	
 	[Attribute("", UIWidgets.Object, desc: "Mission Events can be triggered by combinations of flags, resulting in the execution of the events instructions", category: "Events")]
