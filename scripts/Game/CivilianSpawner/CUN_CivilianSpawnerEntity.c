@@ -3,43 +3,47 @@ class CUN_CivilianSpawnerEntityClass: GenericEntityClass
 {
 }
 
+//This spawns civilians (or any other ai groups so could be used for random patrols) within a specified area. It also allows you to trigger the civilians spawned to flee when triggered.
+
 class CUN_CivilianSpawnerEntity : GenericEntity
 {
+//Variables
+//------------------------------------------------------------------------------------------------------------------------------------------------------------
 	//Civilian Spawner
 	
 	[Attribute(uiwidget: UIWidgets.Auto, desc: "Group prefabs to spawn.", category: "Civilian Spawner")]
-	protected ref array<ResourceName> m_prefabs;
+	protected ref array<ResourceName> m_aigroupPrefabs;
 	
 	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Type of waypoint to use when wandering around", category: "Civilian Spawner")]
 	protected ResourceName m_waypointPrefab;
 	
-	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Type of waypoint to use when fleeing", category: "Civilian Spawner")]
-	protected ResourceName m_fleeWaypointPrefab;
-	
-	[Attribute("0", UIWidgets.Auto, desc: "If possible the civilians will try flee to their own individual hiding spot. /nTo work properly you need the same or more flee entites as civilians", category: "Civilian Spawner")]
-	protected bool m_tryToFleeToSeperatePoints;
-	
 	[Attribute(UIWidgets.Auto, desc: "Number of Groups to spawn.", params: "1 999 1", category: "Civilian Spawner", defvalue: "1")]
 	protected int m_numberOfGroupsToSpawn;
 	
-	[Attribute("1", UIWidgets.Auto, desc: "Already allow spawning before the briefing has ended.", category: "Civilian Spawner")]
+	[Attribute("1", UIWidgets.Auto, desc: "Check this if you want to use buildings as civilian destinations. \nNOTE what reforger considers a building can be a little strange at times.", category: "Civilian Spawner")]
 	protected bool m_useBuildingsAsDestinations;
 	
-	[Attribute(uiwidget: UIWidgets.Slider, desc: "Radius of search area for valid building locations", defvalue: "20", category: "Civilian Spawner", params: "0, 1000, 1")]
+	[Attribute(uiwidget: UIWidgets.Slider, desc: "Radius of search area for valid waypoint and spawn locations.", defvalue: "20", category: "Civilian Spawner", params: "0, 1000, 1")]
 	protected float m_searchRadius;
 	
-	[Attribute(UIWidgets.Auto, desc: "Minimum delay before changing waypoint location in seconds", defvalue: "10", category: "Civilian Spawner", params: "10,999,1")]
+	[Attribute(UIWidgets.Auto, desc: "Minimum delay before changing waypoint location in seconds.", defvalue: "10", category: "Civilian Spawner", params: "10,999,1")]
 	protected int m_minWaypointChangeDelay;
 	
-	[Attribute(UIWidgets.Auto, desc: "Maximum delay before changing waypoint location in seconds", defvalue: "20", category: "Civilian Spawner", params: "10,999,1")]
+	[Attribute(UIWidgets.Auto, desc: "Maximum delay before changing waypoint location in seconds.", defvalue: "20", category: "Civilian Spawner", params: "10,999,1")]
 	protected int m_maxWaypointChangeDelay;
 	
 	//TilW FrameWork
 	[Attribute("", uiwidget: UIWidgets.Auto, desc: "If defined, the spawned civilians will flee to Civilian Flee Entities if any are in the area. \nOtherwise this will do nothing.", category: "TilW Framework")]
 	protected string m_fleeConditionFlag;
 	
+	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Type of waypoint to use when fleeing", category: "TilW Framework")]
+	protected ResourceName m_fleeWaypointPrefab;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "If possible the civilians will try flee to their own individual hiding spot. \nTo work properly you need the same or more flee entites as civilians", category: "TilW Framework")]
+	protected bool m_tryToFleeToSeperatePoints;
+	
 	[Attribute("", uiwidget: UIWidgets.Auto, desc: "If defined, the entities are only spawned when this flag is set.\nYou can define more complex conditions using meta flags.", category: "TilW Framework")]
-	protected string m_conditionFlag;
+	protected string m_spawnConditionFlag;
 	
 	[Attribute("0", UIWidgets.Auto, desc: "Already allow spawning before the briefing has ended.", category: "TilW Framework")]
 	protected bool m_pregameSpawn;
@@ -63,6 +67,8 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		SetEventMask(EntityEvent.INIT);
 	}
 	
+//Init
+//------------------------------------------------------------------------------------------------------------------------------------------------------------
 	override void EOnActivate(IEntity owner)
 	{
 		
@@ -86,7 +92,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
 			gm.GetOnGameStateChange().Insert(StateChange);
 		}
-		if (m_conditionFlag != "")
+		if (m_spawnConditionFlag != "")
 		{
 			TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
 			fw.GetOnFlagChanged().Insert(FlagChange);
@@ -116,11 +122,12 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		
 	}
 	
+//Waypoint Spawning
+//------------------------------------------------------------------------------------------------------------------------------------------------------------
 	protected void SpawnAllWaypoints(IEntity owner)
 	{
 		if (m_waypointPrefab == "")
 			return;
-		
 		
 		GetGame().GetWorld().QueryEntitiesBySphere(owner.GetOrigin(), m_searchRadius, QueryEntities);
 		
@@ -141,6 +148,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			
 			AIWaypoint waypoint = AIWaypoint.Cast(spawnedEntity);
 			
+			//If it isn't a waypoint we just spawned we need to early exit and delete whatever we just spawned.
 			if (!waypoint)
 			{
 				SCR_EntityHelper.DeleteEntityAndChildren(spawnedEntity);
@@ -150,6 +158,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			m_waypoints.Insert(waypoint);
 		}
 		
+		//NOTE this function is duplicated as array referencing doesn't appear to work also failure to find flee locations does not need to early exit the script.
 		if (!m_fleeLocations.IsEmpty())
 		{
 			int fleeLocationCount = m_fleeLocations.Count();
@@ -165,6 +174,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 				
 				AIWaypoint waypoint = AIWaypoint.Cast(spawnedEntity);
 				
+				//If it isn't a waypoint we just spawned we need to early exit and delete whatever we just spawned.
 				if (!waypoint)
 				{
 					SCR_EntityHelper.DeleteEntityAndChildren(spawnedEntity);
@@ -175,32 +185,15 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			}
 		}
 		
-		m_destinations.Clear(); //tidy up
+		//tidy up.
+		m_destinations.Clear();
 		m_fleeLocations.Clear();
 	}
 	
-	protected void CheckFleeCondition(string flag, bool value)
-	{
-		if (flag == m_fleeConditionFlag && value)
-			Flee();
-	}
-	
-	protected void Flee()
-	{
-		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
-		fw.GetOnFlagChanged().Remove(CheckFleeCondition);
-		
-		if (m_fleeWaypoints.IsEmpty())
-			return;
-		
-		GetGame().GetCallqueue().Remove(Tick);
-		
-		foreach (AIGroup group: m_groups)
-			SetRandomFleeWaypoint(group);
-	}
-	
+	//This code executes on each entity within the search area.
 	protected bool QueryEntities(IEntity entity)
 	{
+		//Is it a flee location?
 		if (m_fleeConditionFlag != "")
 		{
 			CUN_CivilianFleeEntity fleeLocation = CUN_CivilianFleeEntity.Cast(entity);
@@ -212,7 +205,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			}
 		}
 		
-	
+		//Is it a spawn location?
 		CUN_CivilianSpawnEntity spawnLocation = CUN_CivilianSpawnEntity.Cast(entity);
 		
 		if (spawnLocation)
@@ -221,6 +214,8 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			return true;
 		}
 		
+		
+		//Is it a building (if use buildings is set)
 		if (m_useBuildingsAsDestinations)
 		{
 			SCR_DestructibleBuildingEntity building = SCR_DestructibleBuildingEntity.Cast(entity);
@@ -231,7 +226,8 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 				return true;
 			}
 		}
-			
+		
+		//Is it a regular destination?
 		CUN_CivilianDestinationEntity destination = CUN_CivilianDestinationEntity.Cast(entity);
 			
 		if (destination)
@@ -241,7 +237,10 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			
 		return true;
 	}
-	
+
+//AI Group spawning
+//------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 	protected void SpawnGroups()
 	{
 		for (int i = 0; i < m_numberOfGroupsToSpawn; i++)
@@ -252,13 +251,14 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 	
 	protected void SpawnGroup()
 	{
-		if (!m_prefabs) 
+		if (!m_aigroupPrefabs) 
 			return;
 		
-		if (m_prefabs.IsEmpty())
+		if (m_aigroupPrefabs.IsEmpty())
 			return;
 		
-		ResourceName prefab = m_prefabs.GetRandomElement();
+		
+		ResourceName prefab = m_aigroupPrefabs.GetRandomElement();
 		
 		if (prefab == "")
 			return;
@@ -266,8 +266,11 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		EntitySpawnParams spawnParams = new EntitySpawnParams();
 		vector transform[4];
 		
-		if (m_spawnLocations && !m_spawnLocations.IsEmpty())
-			m_spawnLocations.GetRandomElement().GetWorldTransform(transform);
+		
+		if (!m_spawnLocations.IsEmpty())
+			{
+				m_spawnLocations.GetRandomElement().GetWorldTransform(transform);
+			}
 		else
 			GetWorldTransform(transform);
 		spawnParams.Transform = transform;
@@ -276,6 +279,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		
 		AIGroup group = AIGroup.Cast(spawnedEntity);
 		
+		//If the prefab isn't an AIGroup we need to early exit from the script and delete whatever we just spawned.
 		if (!group)
 		{
 			SCR_EntityHelper.DeleteEntityAndChildren(spawnedEntity);
@@ -286,24 +290,15 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		m_timers.Insert(0);
 	}
 	
-	protected bool StateAllowed()
+	protected void CheckFleeCondition(string flag, bool value)
 	{
-		if (m_pregameSpawn)
-			return true;
-		
-		SCR_BaseGameMode gm = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
-		return (gm && gm.GetState() == SCR_EGameModeState.GAME);
+		if (flag == m_fleeConditionFlag && value)
+			Flee();
 	}
-	
-	protected bool FlagAllowed()
-	{
-		if (m_conditionFlag == "")
-			return true;
-		
-		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
-		return (fw && fw.IsMissionFlag(m_conditionFlag));
-	}
-	
+
+//Runtime Logic
+//------------------------------------------------------------------------------------------------------------------------------------------------------------	
+
 	protected void Tick()
 	{
 		for (int i = 0; i < m_groups.Count(); i++)
@@ -364,8 +359,44 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 	
 	protected void FlagChange(string flag, bool value)
 	{
-		if (flag == m_conditionFlag && value)
+		if (flag == m_spawnConditionFlag && value)
 			CheckConditions();
+	}
+	
+	protected void Flee()
+	{
+		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
+		fw.GetOnFlagChanged().Remove(CheckFleeCondition);
+		
+		if (m_fleeWaypoints.IsEmpty())
+			return;
+		
+		GetGame().GetCallqueue().Remove(Tick);
+		
+		foreach (AIGroup group: m_groups)
+			SetRandomFleeWaypoint(group);
+	}
+	
+	
+//Check conditions
+//------------------------------------------------------------------------------------------------------------------------------------------------------------
+	
+	protected bool StateAllowed()
+	{
+		if (m_pregameSpawn)
+			return true;
+		
+		SCR_BaseGameMode gm = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+		return (gm && gm.GetState() == SCR_EGameModeState.GAME);
+	}
+	
+	protected bool FlagAllowed()
+	{
+		if (m_spawnConditionFlag == "")
+			return true;
+		
+		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
+		return (fw && fw.IsMissionFlag(m_spawnConditionFlag));
 	}
 	
 	protected void CheckConditions()
@@ -378,7 +409,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 			PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
 			gm.GetOnGameStateChange().Remove(StateChange);
 		}
-		if (m_conditionFlag != "")
+		if (m_spawnConditionFlag != "")
 		{
 			TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
 			fw.GetOnFlagChanged().Remove(FlagChange);
@@ -386,6 +417,9 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		
 		Start();
 	}
+
+//Workbench tools
+//------------------------------------------------------------------------------------------------------------------------------------------------------------
 	
 #ifdef WORKBENCH
 	

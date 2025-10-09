@@ -15,152 +15,32 @@ SCR_AIWorld : "{70CCCF16487C927F}Prefabs/AI/SCR_AIWorld_Eden.et" {
    }
   }
  }
- coords 7621.341 76.117 5447.387
+ coords 5542.599 95.384 6063.432
 }
 PerceptionManager PerceptionManager1 : "{028DAEAD63E056BE}Prefabs/World/Game/PerceptionManager.et" {
- coords 7616.712 76.808 5454.46
+ coords 5532.452 95.357 6063.233
 }
 PS_GameModeCoop PS_GameMode_Lobby_GC1 : "{4CFD54745CD45673}Prefabs/MP/Modes/PS_GameMode_Lobby_GC.et" {
- coords 7606.237 78.45 5473.886
-}
-$grp CUN_CivilianSpawnerEntity : "{238EEB404695DDB1}Prefabs/CivilianSpawner/Civilian_Spawner.et" {
- {
-  coords 7579.464 81.794 5517.035
-  m_tryToFleeToSeperatePoints 1
-  m_fleeConditionFlag "civ_flee"
- }
- {
-  coords 7592.128 80.293 5491.905
- }
-}
-$grp CUN_CivilianFleeEntity : "{4D02D9F5C0C86656}Prefabs/CivilianSpawner/Civ_Flee_Location.et" {
- {
-  coords 7567.901 89.591 5473.867
- }
- {
-  coords 7569.766 89.591 5475.047
- }
- {
-  coords 7563.338 89.591 5472.792
- }
- {
-  coords 7602.584 80.447 5564.624
- }
- {
-  coords 7603.286 80.447 5565.021
- }
- {
-  coords 7620.952 79.758 5486.443
- }
- {
-  coords 7623.363 79.758 5476.401
- }
- {
-  coords 7544.747 86.912 5502.452
- }
- {
-  coords 7531.021 83.047 5471.89
- }
+ coords 5521.871 95.44 6075.864
 }
 TILW_MissionFrameworkEntity : "{8F846D0FD5D6EA51}Prefabs/MP/TILW_MissionFramework.et" {
- coords 7578.838 82.522 5507.218
+ coords 5533.837 95.323 6068.924
  m_missionEvents {
-  TILW_MissionEvent "{66917DDB6243691C}" {
+  TILW_MissionEvent "{6692C758E58199D9}" {
+   m_name "Civilians Flee"
    m_instructions {
-    TILW_SendMessageInstruction "{66917DDB6B264819}" {
+    TILW_SendMessageInstruction "{6692C758EAD7D263}" {
      m_executionDelay 30
-     m_messageTitle "FLEE FLEE!!!"
+     m_messageTitle "FLEE!"
     }
-    TILW_SetFlagInstruction "{66917DDB71B0FF14}" {
+    TILW_SetFlagInstruction "{6692C758FE3B55C5}" {
      m_executionDelay 30
      m_flagName "civ_flee"
     }
    }
-   m_condition TILW_LiteralTerm "{66917DDB6EB1588F}" {
+   m_condition TILW_LiteralTerm "{6692C758E3C1ABDA}" {
     m_invertTerm 1
    }
   }
- }
-}
-CUN_CivilianSpawnerEntity : "{A6D9CBA2BBD65AF3}Prefabs/CivilianSpawner/Civilian_Spawner_Dockworkers.et" {
- coords 7591.533 80.004 5503.719
-}
-$grp CUN_CivilianDestinationEntity : "{BA5AE6DAF592A899}Prefabs/CivilianSpawner/Civ_Destination.et" {
- {
-  coords 7561.707 89.591 5482.037
- }
- {
-  coords 7566.119 86.289 5486.663
- }
- {
-  coords 7567.608 86.289 5483.206
- }
- {
-  coords 7568.927 86.289 5479.789
- }
- {
-  coords 7570.299 86.289 5475.909
- }
- {
-  coords 7610.912 80.685 5505.393
- }
- {
-  coords 7556.054 82.697 5551.758
- }
- {
-  coords 7538.496 84.95 5593.239
- }
- {
-  coords 7530.76 84.95 5594.542
- }
- {
-  coords 7545.158 86.912 5511.833
- }
- {
-  coords 7542.899 86.912 5515.433
- }
- {
-  coords 7535.264 86.912 5502.086
- }
- {
-  coords 7542.646 83.112 5515.266
- }
- {
-  coords 7536.96 83.112 5499.702
- }
- {
-  coords 7538.663 83.112 5500.833
- }
- {
-  coords 7543.627 83.112 5504.952
- }
-}
-CUN_CivilianSpawnerEntity : "{C87BF2894211766E}Prefabs/CivilianSpawner/Civilian_Spawner_Buisness.et" {
- coords 7585.167 81.519 5498.788
-}
-CUN_CivilianSpawnerEntity : "{CB59C89575DCA508}Prefabs/CivilianSpawner/Civilian_Spawner_Construction.et" {
- coords 7582.45 82.027 5494.22
-}
-$grp CUN_CivilianSpawnEntity : "{D572DBDDEBDD6B06}Prefabs/CivilianSpawner/Civ_Spawn.et" {
- {
-  coords 7576.54 82.484 5514.37
- }
- {
-  coords 7569.709 82.632 5523.012
- }
- {
-  coords 7550.938 82.799 5499.429
- }
- {
-  coords 7553.63 82.781 5523.217
- }
- {
-  coords 7581.834 81.805 5510.072
- }
- {
-  coords 7575.082 82.736 5508.557
- }
- {
-  coords 7566.976 82.75 5506.892
  }
 }

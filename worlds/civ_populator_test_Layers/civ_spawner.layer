@@ -1,0 +1,68 @@
+CUN_CivilianSpawnerEntity : "{238EEB404695DDB1}Prefabs/CivilianSpawner/Civilian_Spawner.et" {
+ coords 5531.29 95.336 6067.256
+ m_spawnEntities {
+  "spawn_point"
+ }
+ m_fleeConditionFlag "civ_flee"
+ m_fleeEntities {
+  "flee_point"
+ }
+ m_tryToFleeToSeperatePoints 1
+}
+$grp CUN_CivilianFleeEntity : "{4D02D9F5C0C86656}Prefabs/CivilianSpawner/Civ_Flee_Location.et" {
+ {
+  coords 5524.88 99.452 6091.091
+ }
+ {
+  coords 5517.501 99.452 6096.375
+ }
+ {
+  coords 5526.995 102.874 6096.309
+ }
+ {
+  coords 5523.99 102.872 6094.133
+ }
+ {
+  coords 5514.862 102.872 6101.114
+ }
+ {
+  coords 5519.759 102.872 6104.545
+ }
+}
+$grp CUN_CivilianDestinationEntity : "{BA5AE6DAF592A899}Prefabs/CivilianSpawner/Civ_Destination.et" {
+ {
+  coords 5548.833 95.719 6045.245
+ }
+ {
+  coords 5537.941 95.842 6028.536
+ }
+ {
+  coords 5533.258 95.801 6020.628
+ }
+ {
+  coords 5510.641 95.622 6094.626
+ }
+ {
+  coords 5511.866 95.593 6093.934
+ }
+ {
+  coords 5513.167 95.594 6092.984
+ }
+}
+$grp CUN_CivilianSpawnEntity : "{D572DBDDEBDD6B06}Prefabs/CivilianSpawner/Civ_Spawn.et" {
+ {
+  coords 5529.153 95.5 6037.42
+ }
+ {
+  coords 5512.688 96.326 6124.95
+ }
+ {
+  coords 5564.436 96.293 6092.621
+ }
+ {
+  coords 5495.18 94.812 6044.043
+ }
+ {
+  coords 5553.194 91.745 5975.374
+ }
+}
