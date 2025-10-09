@@ -1,4 +1,4 @@
-CN_CivilianSpawnEntity {
+CN_CivilianSpawnerTargetEntity {
  ID "6692DAB893F466F0"
  components {
   RplComponent "{6692DAB880F02D3E}" {

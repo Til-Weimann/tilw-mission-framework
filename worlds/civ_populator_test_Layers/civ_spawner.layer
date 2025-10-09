@@ -1,3 +1,6 @@
+CN_CivilianSpawnerTargetEntity {
+ coords 5501.297 95.699 6086.39
+}
 $grp CN_CivilianFleeEntity : "{03E8744DFA8A1146}Prefabs/CivilianSpawner/Civilian_Flee_Entity.et" {
  {
   coords 5572.304 99.722 6064.231

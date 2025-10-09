@@ -194,27 +194,28 @@ class CN_CivilianSpawnerEntity : GenericEntity
 	//This code executes on each entity within the search area.
 	protected bool QueryEntities(IEntity entity)
 	{
-		//Is it a flee location?
-		if (m_fleeConditionFlag != "")
+		CN_CivilianSpawnerTargetEntity target = CN_CivilianSpawnerTargetEntity.Cast(entity);
+		
+		if (target)
 		{
-			CN_CivilianFleeEntity fleeLocation = CN_CivilianFleeEntity.Cast(entity);
-			
-			if (fleeLocation)
+			switch(target.m_targetType)
 			{
-				m_fleeLocations.Insert(entity);
-				return true;
+				case CN_CivilianSpawnerTargetType.SPAWNER:
+					m_spawnLocations.Insert(entity);
+					return true;
+				
+				case CN_CivilianSpawnerTargetType.FLEEPOINT:
+					if (m_fleeConditionFlag != "")
+					{
+						m_fleeLocations.Insert(entity);
+					}
+					return true;
+				
+				default:
+					m_destinations.Insert(entity);
+					return true;
 			}
 		}
-		
-		//Is it a spawn location?
-		CN_CivilianSpawnEntity spawnLocation = CN_CivilianSpawnEntity.Cast(entity);
-		
-		if (spawnLocation)
-		{
-			m_spawnLocations.Insert(entity);
-			return true;
-		}
-		
 		
 		//Is it a building (if use buildings is set)
 		if (m_useBuildingsAsDestinations)
@@ -228,14 +229,6 @@ class CN_CivilianSpawnerEntity : GenericEntity
 			}
 		}
 		
-		//Is it a regular destination?
-		CN_CivilianDestinationEntity destination = CN_CivilianDestinationEntity.Cast(entity);
-			
-		if (destination)
-		{
-			m_destinations.Insert(entity);	
-		}
-			
 		return true;
 	}
 

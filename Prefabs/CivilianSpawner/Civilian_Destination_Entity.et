@@ -1,4 +1,4 @@
-CN_CivilianDestinationEntity {
+CN_CivilianSpawnerTargetEntity {
  ID "6692DAB8CC00F143"
  components {
   RplComponent "{6692DAB8FBCE8FD5}" {
@@ -7,4 +7,5 @@ CN_CivilianDestinationEntity {
   }
  }
  coords 5509.99 95.625 6087.718
+ m_targetType DESTINATION
 }
