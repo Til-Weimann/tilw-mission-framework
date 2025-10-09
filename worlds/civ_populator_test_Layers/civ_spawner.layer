@@ -1,68 +1,93 @@
-CUN_CivilianSpawnerEntity : "{238EEB404695DDB1}Prefabs/CivilianSpawner/Civilian_Spawner.et" {
- coords 5531.29 95.336 6067.256
- m_spawnEntities {
-  "spawn_point"
+$grp CN_CivilianFleeEntity : "{03E8744DFA8A1146}Prefabs/CivilianSpawner/Civilian_Flee_Entity.et" {
+ {
+  coords 5572.304 99.722 6064.231
  }
+ {
+  coords 5555.112 96.023 6076.795
+ }
+ {
+  coords 5515.142 102.872 6101.891
+ }
+ {
+  coords 5520.696 102.872 6104.457
+ }
+ {
+  coords 5511.624 95.969 6105.105
+ }
+ {
+  coords 5506.26 98.798 6064.319
+ }
+ {
+  coords 5498.294 95.515 6028.823
+ }
+ {
+  coords 5544.411 95.87 6036.574
+ }
+ {
+  coords 5569.442 95.895 6080.594
+ }
+ {
+  coords 5510.789 95.969 6104.23
+ }
+}
+$grp CN_CivilianSpawnEntity : "{3D5253EAB1DBB372}Prefabs/CivilianSpawner/Civilian_Spawn_Enity.et" {
+ {
+  coords 5507.956 95.692 6096.642
+ }
+ {
+  coords 5533.974 95.982 6112.991
+ }
+ {
+  coords 5530.232 95.562 6030.939
+ }
+ {
+  coords 5585.095 96.162 6060.417
+ }
+ {
+  coords 5493.028 94.548 6049.268
+ }
+}
+$grp CN_CivilianDestinationEntity : "{A21120DA1918C78C}Prefabs/CivilianSpawner/Civilian_Destination_Entity.et" {
+ {
+  coords 5511.432 95.613 6094.866
+ }
+ {
+  coords 5512.747 95.595 6094.213
+ }
+ {
+  coords 5513.83 95.595 6093.585
+ }
+ {
+  coords 5486.008 96.568 6118.383
+ }
+ {
+  coords 5497.955 98.798 6068.96
+ }
+ {
+  coords 5540.83 95.87 6039.815
+ }
+ {
+  coords 5571.725 99.722 6063.206
+ }
+ {
+  coords 5557.607 96.023 6074.712
+ }
+ {
+  coords 5534.277 96.429 6088.253
+ }
+ {
+  coords 5573.076 97.535 6111.154
+ }
+ {
+  coords 5484.225 92.038 5998.28
+ }
+ {
+  coords 5486.152 96.568 6119.362
+ }
+}
+CN_CivilianSpawnerEntity : "{F698EE55E078C910}Prefabs/CivilianSpawner/Civilian_Spawner_Entity.et" {
+ coords 5511.5 95.582 6083.259
+ m_useBuildingsAsDestinations 0
  m_fleeConditionFlag "civ_flee"
- m_fleeEntities {
-  "flee_point"
- }
  m_tryToFleeToSeperatePoints 1
-}
-$grp CUN_CivilianFleeEntity : "{4D02D9F5C0C86656}Prefabs/CivilianSpawner/Civ_Flee_Location.et" {
- {
-  coords 5524.88 99.452 6091.091
- }
- {
-  coords 5517.501 99.452 6096.375
- }
- {
-  coords 5526.995 102.874 6096.309
- }
- {
-  coords 5523.99 102.872 6094.133
- }
- {
-  coords 5514.862 102.872 6101.114
- }
- {
-  coords 5519.759 102.872 6104.545
- }
-}
-$grp CUN_CivilianDestinationEntity : "{BA5AE6DAF592A899}Prefabs/CivilianSpawner/Civ_Destination.et" {
- {
-  coords 5548.833 95.719 6045.245
- }
- {
-  coords 5537.941 95.842 6028.536
- }
- {
-  coords 5533.258 95.801 6020.628
- }
- {
-  coords 5510.641 95.622 6094.626
- }
- {
-  coords 5511.866 95.593 6093.934
- }
- {
-  coords 5513.167 95.594 6092.984
- }
-}
-$grp CUN_CivilianSpawnEntity : "{D572DBDDEBDD6B06}Prefabs/CivilianSpawner/Civ_Spawn.et" {
- {
-  coords 5529.153 95.5 6037.42
- }
- {
-  coords 5512.688 96.326 6124.95
- }
- {
-  coords 5564.436 96.293 6092.621
- }
- {
-  coords 5495.18 94.812 6044.043
- }
- {
-  coords 5553.194 91.745 5975.374
- }
 }

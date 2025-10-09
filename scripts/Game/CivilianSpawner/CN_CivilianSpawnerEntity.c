@@ -1,11 +1,12 @@
 [EntityEditorProps(category: "GameScripted/", description: "Entity which randomly spawns and controls civilian groups.")]
-class CUN_CivilianSpawnerEntityClass: GenericEntityClass
+class CN_CivilianSpawnerEntityClass: GenericEntityClass
 {
 }
-
+//CIVILIAN SPAWNER
+//Code by Cunnah.
 //This spawns civilians (or any other ai groups so could be used for random patrols) within a specified area. It also allows you to trigger the civilians spawned to flee when triggered.
 
-class CUN_CivilianSpawnerEntity : GenericEntity
+class CN_CivilianSpawnerEntity : GenericEntity
 {
 //Variables
 //------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -196,7 +197,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		//Is it a flee location?
 		if (m_fleeConditionFlag != "")
 		{
-			CUN_CivilianFleeEntity fleeLocation = CUN_CivilianFleeEntity.Cast(entity);
+			CN_CivilianFleeEntity fleeLocation = CN_CivilianFleeEntity.Cast(entity);
 			
 			if (fleeLocation)
 			{
@@ -206,7 +207,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		}
 		
 		//Is it a spawn location?
-		CUN_CivilianSpawnEntity spawnLocation = CUN_CivilianSpawnEntity.Cast(entity);
+		CN_CivilianSpawnEntity spawnLocation = CN_CivilianSpawnEntity.Cast(entity);
 		
 		if (spawnLocation)
 		{
@@ -228,7 +229,7 @@ class CUN_CivilianSpawnerEntity : GenericEntity
 		}
 		
 		//Is it a regular destination?
-		CUN_CivilianDestinationEntity destination = CUN_CivilianDestinationEntity.Cast(entity);
+		CN_CivilianDestinationEntity destination = CN_CivilianDestinationEntity.Cast(entity);
 			
 		if (destination)
 		{

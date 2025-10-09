@@ -1,19 +1,19 @@
-CUN_CivilianSpawnerEntity {
- ID "6691610E7BA72464"
+CN_CivilianSpawnerEntity {
+ ID "6692DAB930AA0ED6"
  components {
-  RplComponent "{66917DDEA7126CB9}" {
+  RplComponent "{6692DAB92E4A96EA}" {
   }
-  Hierarchy "{66917DDEA4294722}" {
+  Hierarchy "{6692DAB92A0E3E8F}" {
   }
  }
- coords 7574.828 82.35 5522.984
+ coords 5517.784 95.524 6081.552
  m_aigroupPrefabs {
   "{7643DFD2F1C9E88C}Prefabs/CivilianSpawner/Groups/Random_Civ_Group.et"
  }
  m_waypointPrefab "{C48BD0E098FDCA28}Prefabs/CivilianSpawner/Waypoints/Civ_Waypoint.et"
  m_numberOfGroupsToSpawn 10
  m_searchRadius 100
- m_minWaypointChangeDelay 60
+ m_minWaypointChangeDelay 30
  m_maxWaypointChangeDelay 120
  m_fleeWaypointPrefab "{B29FBAA143936014}Prefabs/CivilianSpawner/Waypoints/Civ_Flee_Waypoint.et"
 }

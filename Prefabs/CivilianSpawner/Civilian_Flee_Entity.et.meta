@@ -1,5 +1,5 @@
 MetaFileClass {
- Name "{A6D9CBA2BBD65AF3}Prefabs/CivilianSpawner/Civilian_Spawner_Dockworkers.et"
+ Name "{03E8744DFA8A1146}Prefabs/CivilianSpawner/Civilian_Flee_Entity.et"
  Configurations {
   EntityTemplateResourceClass PC {
   }

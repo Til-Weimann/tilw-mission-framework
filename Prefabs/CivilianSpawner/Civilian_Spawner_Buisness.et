@@ -1,7 +1,0 @@
-CUN_CivilianSpawnerEntity : "{238EEB404695DDB1}Prefabs/CivilianSpawner/Civilian_Spawner.et" {
- ID "6691610E7BA72464"
- coords 7592.109 80.28 5489.01
- m_aigroupPrefabs {
-  "{3A7E9854AF6ADC04}Prefabs/CivilianSpawner/Groups/Random_Civ_Buisness_Group.et"
- }
-}

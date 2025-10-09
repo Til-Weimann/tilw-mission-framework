@@ -1,0 +1,10 @@
+CN_CivilianSpawnEntity {
+ ID "6692DAB893F466F0"
+ components {
+  RplComponent "{6692DAB880F02D3E}" {
+  }
+  Hierarchy "{6692DAB88DBC730E}" {
+  }
+ }
+ coords 5535.438 95.531 6050.523
+}

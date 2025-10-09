@@ -2,10 +2,10 @@
     category: "GameScripted/",
     description: "A flee location used by the civilian populator."
 )]
-class CUN_CivilianFleeEntityClass : GenericEntityClass
+class CN_CivilianFleeEntityClass : GenericEntityClass
 {
 }
 
-class CUN_CivilianFleeEntity : GenericEntity
+class CN_CivilianFleeEntity : GenericEntity
 {
 }
