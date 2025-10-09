@@ -1,96 +1,88 @@
-CN_CivilianSpawnerTargetEntity {
- coords 5501.297 95.699 6086.39
-}
-$grp CN_CivilianFleeEntity : "{03E8744DFA8A1146}Prefabs/CivilianSpawner/Civilian_Flee_Entity.et" {
+$grp CN_CivilianSpawnerTargetEntity : "{03E8744DFA8A1146}Prefabs/CivilianSpawner/Civilian_Flee_Entity.et" {
  {
-  coords 5572.304 99.722 6064.231
+  coords 5515.33 102.872 6100.661
  }
  {
-  coords 5555.112 96.023 6076.795
+  coords 5526.313 102.872 6094.095
  }
  {
-  coords 5515.142 102.872 6101.891
+  coords 5522.629 102.872 6092.928
  }
  {
-  coords 5520.696 102.872 6104.457
+  coords 5578.435 99.722 6062.992
  }
  {
-  coords 5511.624 95.969 6105.105
+  coords 5509.864 95.609 6029.935
  }
  {
-  coords 5506.26 98.798 6064.319
+  coords 5512.126 95.969 6105.987
  }
  {
-  coords 5498.294 95.515 6028.823
+  coords 5446.477 90.919 6065.923
  }
  {
-  coords 5544.411 95.87 6036.574
+  coords 5444.106 90.748 6077.104
  }
  {
-  coords 5569.442 95.895 6080.594
+  coords 5498.025 96.419 6116.161
  }
  {
-  coords 5510.789 95.969 6104.23
+  coords 5502.18 96.419 6124.11
  }
 }
-$grp CN_CivilianSpawnEntity : "{3D5253EAB1DBB372}Prefabs/CivilianSpawner/Civilian_Spawn_Enity.et" {
+$grp CN_CivilianSpawnerTargetEntity : "{3D5253EAB1DBB372}Prefabs/CivilianSpawner/Civilian_Spawn_Enity.et" {
  {
-  coords 5507.956 95.692 6096.642
+  coords 5502.429 94.813 6042.769
  }
  {
-  coords 5533.974 95.982 6112.991
+  coords 5565.688 96.556 6096.132
  }
  {
-  coords 5530.232 95.562 6030.939
+  coords 5468.943 96.814 6156.41
  }
  {
-  coords 5585.095 96.162 6060.417
+  coords 5558.591 95.875 6006.754
  }
  {
-  coords 5493.028 94.548 6049.268
+  coords 5492.755 94.812 6042.72
+ }
+ {
+  coords 5525.029 95.529 6081.278
  }
 }
-$grp CN_CivilianDestinationEntity : "{A21120DA1918C78C}Prefabs/CivilianSpawner/Civilian_Destination_Entity.et" {
+$grp CN_CivilianSpawnerTargetEntity : "{A21120DA1918C78C}Prefabs/CivilianSpawner/Civilian_Destination_Entity.et" {
  {
-  coords 5511.432 95.613 6094.866
+  coords 5511.584 95.611 6094.919
  }
  {
-  coords 5512.747 95.595 6094.213
+  coords 5513.168 95.594 6094.034
  }
  {
-  coords 5513.83 95.595 6093.585
+  coords 5514.82 95.595 6093.166
  }
  {
-  coords 5486.008 96.568 6118.383
+  coords 5516.498 95.601 6092.221
  }
  {
-  coords 5497.955 98.798 6068.96
+  coords 5502.851 96.419 6108.628
  }
  {
-  coords 5540.83 95.87 6039.815
+  coords 5518.244 95.652 6105.426
  }
  {
-  coords 5571.725 99.722 6063.206
+  coords 5534.273 96.429 6087.298
  }
  {
-  coords 5557.607 96.023 6074.712
+  coords 5540.459 95.87 6039.047
  }
  {
-  coords 5534.277 96.429 6088.253
+  coords 5499.384 95.313 6070.567
  }
  {
-  coords 5573.076 97.535 6111.154
- }
- {
-  coords 5484.225 92.038 5998.28
- }
- {
-  coords 5486.152 96.568 6119.362
+  coords 5496.158 95.716 6080.037
  }
 }
 CN_CivilianSpawnerEntity : "{F698EE55E078C910}Prefabs/CivilianSpawner/Civilian_Spawner_Entity.et" {
- coords 5511.5 95.582 6083.259
- m_useBuildingsAsDestinations 0
+ coords 5501.433 95.696 6086.543
  m_fleeConditionFlag "civ_flee"
- m_tryToFleeToSeperatePoints 1
 }
