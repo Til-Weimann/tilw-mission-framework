@@ -555,6 +555,12 @@ class TILW_ServiceVehiclesInstruction : TILW_BaseInstruction
 	[Attribute("0", UIWidgets.Auto, desc: "How many supplies the vehicles should carry.")]
 	protected int m_iAmountSupplies;
 	
+	[Attribute("0", UIWidgets.Auto, desc: "Does this vehicle uses Cargo in Slot Manager Component.")]
+	protected bool m_bUseSlotManager;
+	
+	[Attribute("", UIWidgets.Auto, desc: "Slot Manager Index Name.")]
+	protected string m_sIndexName;
+	
 	[Attribute("0", UIWidgets.Auto, desc: "Whether to fully heal the vehicles, also works for some other entity types.")]
 	protected bool m_bRepair;
 	
@@ -579,7 +585,19 @@ class TILW_ServiceVehiclesInstruction : TILW_BaseInstruction
 			
 			if (m_bAdjustSupplies)
 			{
-				SCR_ResourceComponent resourceComponent = SCR_ResourceComponent.FindResourceComponent(v, true);
+				SCR_ResourceComponent resourceComponent;
+				
+				if (m_bUseSlotManager) 
+				{
+					SlotManagerComponent smc = SlotManagerComponent.Cast(v.FindComponent(SlotManagerComponent));
+					EntitySlotInfo esi = smc.GetSlotByName(m_sIndexName);
+					resourceComponent = SCR_ResourceComponent.FindResourceComponent(esi.GetAttachedEntity(), true);
+				}
+				else 
+				{
+					resourceComponent = SCR_ResourceComponent.FindResourceComponent(v, true);
+				}
+				
 				SCR_ResourceContainer container;
 				if (resourceComponent && resourceComponent.GetContainer(EResourceType.SUPPLIES, container))
 					container.SetResourceValue(m_iAmountSupplies);
