@@ -13,7 +13,7 @@ class TILW_AOLimitComponent : ScriptComponent
 	[Attribute("", UIWidgets.Auto, desc: "Factions affected by the AO limit (if empty, all factions)", category: "Logic")]
 	protected ref array<string> m_factionKeys;
 
-	[Attribute("", UIWidgets.Auto, desc: "Passengers of these vehicle prefabs (or inheriting) are NOT affected by the AO limit", category: "Logic")]
+	[Attribute("", UIWidgets.Auto, desc: "Passengers of these vehicle prefabs (or inheriting) are NOT affected by the AO limit", params: "et", category: "Logic")]
 	protected ref array<ResourceName> m_ignoredVehicles;
 	
 	//[Attribute("", UIWidgets.Auto, desc: "Members of these groups (referenced by name) are not affected by the AO limit", category: "Logic")]
