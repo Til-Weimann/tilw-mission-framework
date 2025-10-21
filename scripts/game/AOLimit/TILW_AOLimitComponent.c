@@ -451,10 +451,13 @@ class TILW_AOLimitComponent : ScriptComponent
 	
 	override void OnDelete(IEntity owner)
 	{
+		super.OnDelete(owner);
+		
+		if(!GetGame().InPlayMode())
+			return;
+
 		UnDrawAO();
 		TILW_AOLimitManager.GetInstance().UnRegister(this);
-		
-		super.OnDelete(owner);
 	}
 	
 	override bool RplSave(ScriptBitWriter writer)
