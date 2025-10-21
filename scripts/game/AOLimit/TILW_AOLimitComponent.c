@@ -36,9 +36,6 @@ class TILW_AOLimitComponent : ScriptComponent
 	
 	[Attribute("", UIWidgets.Auto, desc: "Names of entities that EFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
 	protected ref array<string> m_affectedEntityNames;
-	
-	//[Attribute("", UIWidgets.Auto, desc: "Members of these groups (referenced by name) are not affected by the AO limit", category: "Logic")]
-	protected ref array<string> m_ignoredGroups;
 
 	// Visualization
 	[Attribute("0", UIWidgets.ComboBox, "Who can view the AO limit (everyone, affected factions, noone)", enums: ParamEnumArray.FromEnum(TILW_EVisibilityMode), category: "Visualization")]
