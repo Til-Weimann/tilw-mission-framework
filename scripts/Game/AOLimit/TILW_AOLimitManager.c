@@ -5,24 +5,6 @@ enum TILW_EVisibilityMode
 	NONE = 2
 }
 
-class GRAY_TESTClass : ScriptComponentClass
-{
-}
-
-class GRAY_TEST : ScriptComponent
-{
-	protected override void OnPostInit(IEntity owner)
-	{
-		GetGame().GetCallqueue().CallLater(DeleteP, 10000);
-	}
-	
-	void DeleteP()
-	{
-		Print("TILW AO | Delete");
-		SCR_EntityHelper.DeleteEntityAndChildren(GetOwner());
-	}
-}
-
 class TILW_AOLimitManagerClass : GenericEntityClass
 {
 }
@@ -48,8 +30,6 @@ class TILW_AOLimitManager : GenericEntity
 	protected bool m_wasOutsideAO = false;
 	
 	protected TILW_AOLimitDisplay m_display;
-	
-	protected IEntity m_controlledEntity;
 	protected OnControlledEntityChangedPlayerControllerInvoker m_OnControlledEntityChanged;
 	
 	void TILW_AOLimitManager(IEntitySource src, IEntity parent)
