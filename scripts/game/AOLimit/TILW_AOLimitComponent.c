@@ -219,6 +219,13 @@ class TILW_AOLimitComponent : ScriptComponent
 		if(!player)
 			return TILW_EAoEffect.NEUTRAL;
 		
+		//Check player entity
+		TILW_EAoEffect playerEffect = GetEntityEffect(pc);
+		if (playerEffect == TILW_EAoEffect.EXEMPT)
+			hasExempt = true;
+		else if (playerEffect == TILW_EAoEffect.AFFECTED)
+			hasAffected = true;
+		
         // Check player's inventory
         SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(player.FindComponent(SCR_InventoryStorageManagerComponent));
         if (inv)
