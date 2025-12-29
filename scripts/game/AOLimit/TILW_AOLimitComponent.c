@@ -13,6 +13,9 @@ class TILW_AOLimitComponentClass : ScriptComponentClass
 class TILW_AOLimitComponent : ScriptComponent
 {
 	// Logic
+	[Attribute("1", UIWidgets.ComboBox, desc: "Which rule the AO comp priotizes", category: "Logic", enums: ParamEnumArray.FromEnum(TILW_EAoEffect))]
+	protected TILW_EAoEffect m_effectPriority;
+	
 	[Attribute("", UIWidgets.Auto, desc: "Inverts area AO check to consider players outside the AO shap outside.", category: "Logic")]
 	protected bool m_invertArea;
 	
@@ -54,7 +57,7 @@ class TILW_AOLimitComponent : ScriptComponent
 
 	protected ref array<MapItem> m_markers = new array<MapItem>();
 	
-	protected ref map<IEntity,TILW_EAoEffect> m_entitiesCache = new map<IEntity,TILW_EAoEffect>();
+	protected ref map<IEntity, ref set<TILW_EAoEffect>> m_entitiesCache = new map<IEntity, ref set<TILW_EAoEffect>>();
 	
 	protected bool m_wasEverInsideAO = false;
 	
@@ -112,14 +115,16 @@ class TILW_AOLimitComponent : ScriptComponent
 			return true;
 
 		TILW_EAoEffect effect = GetPlayerEffect(pc);
-		switch (effect)
-	    {
-	        case TILW_EAoEffect.EXEMPT:   return true;
-	        case TILW_EAoEffect.AFFECTED: return false;
-	        case TILW_EAoEffect.NEUTRAL:  return inArea;
-	        default:                      return false;
-	    }
 		
+		Print("TILW | AO Effect: " + effect);
+		
+		switch (effect)
+		{
+			case TILW_EAoEffect.EXEMPT:   return true;
+			case TILW_EAoEffect.AFFECTED: return false;
+			case TILW_EAoEffect.NEUTRAL:  return inArea;
+		}
+
 	    return false;
 	}
 	
@@ -175,102 +180,90 @@ class TILW_AOLimitComponent : ScriptComponent
 		return true;
 	}
 	
-	protected TILW_EAoEffect GetEntityEffect(notnull IEntity entity)
+	protected set<TILW_EAoEffect> GetEntityEffect(notnull IEntity entity)
 	{
-		TILW_EAoEffect cached;
-	    if (m_entitiesCache.Find(entity, cached))
-	        return cached;
+		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
+	    if(m_entitiesCache.Find(entity, effects))
+	        return effects;
+
+		effects = new set<TILW_EAoEffect>();
+		
+	    // EXEMPT
+	    if(!m_exemptPrefabs.IsEmpty() && ArrayContainsKind(entity, m_exemptPrefabs))
+			effects.Insert(TILW_EAoEffect.EXEMPT);
+		
+	    if(!m_exemptEntityNames.IsEmpty() && m_exemptEntityNames.Contains(entity.GetName()))
+			effects.Insert(TILW_EAoEffect.EXEMPT);
 	
-	    // PRIORITY 1: EXEMPT (wins always)
-	    if (!m_exemptPrefabs.IsEmpty() && ArrayContainsKind(entity, m_exemptPrefabs))
-	    {
-	        m_entitiesCache.Insert(entity, TILW_EAoEffect.EXEMPT);
-	        return TILW_EAoEffect.EXEMPT;
-	    }
-	    if (!m_exemptEntityNames.IsEmpty() && m_exemptEntityNames.Contains(entity.GetName()))
-	    {
-	        m_entitiesCache.Insert(entity, TILW_EAoEffect.EXEMPT);
-	        return TILW_EAoEffect.EXEMPT;
-	    }
-	
-	    // PRIORITY 2: AFFECTED
-	    if (!m_affectedPrefabs.IsEmpty() && ArrayContainsKind(entity, m_affectedPrefabs))
-	    {
-	        m_entitiesCache.Insert(entity, TILW_EAoEffect.AFFECTED);
-	        return TILW_EAoEffect.AFFECTED;
-	    }
-	    if (!m_affectedEntityNames.IsEmpty() && m_affectedEntityNames.Contains(entity.GetName()))
-	    {
-	        m_entitiesCache.Insert(entity, TILW_EAoEffect.AFFECTED);
-	        return TILW_EAoEffect.AFFECTED;
-	    }
-	
-	    // DEFAULT: NEUTRAL
-	    m_entitiesCache.Insert(entity, TILW_EAoEffect.NEUTRAL);
-	    return TILW_EAoEffect.NEUTRAL;
+	    // AFFECTED
+	    if(!m_affectedPrefabs.IsEmpty() && ArrayContainsKind(entity, m_affectedPrefabs))
+			effects.Insert(TILW_EAoEffect.AFFECTED);
+		
+	    if(!m_affectedEntityNames.IsEmpty() && m_affectedEntityNames.Contains(entity.GetName()))
+			effects.Insert(TILW_EAoEffect.AFFECTED);
+		
+		m_entitiesCache.Insert(entity, effects);
+		return effects;
 	}
 	
 	protected TILW_EAoEffect GetPlayerEffect(notnull PlayerController pc)
     {
-        bool hasExempt = false;
-        bool hasAffected = false;
-
 		IEntity player = pc.GetControlledEntity();
-		if(!player)
+		if(!player || m_effectPriority == TILW_EAoEffect.NEUTRAL)
 			return TILW_EAoEffect.NEUTRAL;
 		
-		//Check player entity
-		TILW_EAoEffect playerEffect = GetEntityEffect(pc);
-		if (playerEffect == TILW_EAoEffect.EXEMPT)
-			hasExempt = true;
-		else if (playerEffect == TILW_EAoEffect.AFFECTED)
-			hasAffected = true;
-		
+		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
+
+		// Check player entity
+		set<TILW_EAoEffect> results = GetEntityEffect(player);
+		foreach(TILW_EAoEffect effect : results)
+			effects.Insert(effect);
+
         // Check player's inventory
-        SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(player.FindComponent(SCR_InventoryStorageManagerComponent));
-        if (inv)
-        {
+		SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(player.FindComponent(SCR_InventoryStorageManagerComponent));
+        if(inv)
+		{
 			array<IEntity> items = {};
-			inv.GetAllRootItems(items);
-			
+			inv.GetItems(items);
+		
 			foreach (IEntity item : items)
 			{
-				TILW_EAoEffect effect = GetEntityEffect(item);
-				if (effect == TILW_EAoEffect.EXEMPT)
-				    hasExempt = true;
-				else if (effect == TILW_EAoEffect.AFFECTED)
-				    hasAffected = true;
+				results = GetEntityEffect(item);
+				foreach(TILW_EAoEffect effect : results)
+					effects.Insert(effect);
 			}
-        }
-
+		}
+		
         // Check if in vehicle
         IEntity ve = CompartmentAccessComponent.GetVehicleIn(player);
         if (ve)
         {
-            TILW_EAoEffect vehEffect = GetVehicleEffect(ve);
-            if (vehEffect == TILW_EAoEffect.EXEMPT)
-                hasExempt = true;
-            else if (vehEffect == TILW_EAoEffect.AFFECTED)
-                hasAffected = true;
+            results = GetVehicleEffect(ve);
+            foreach(TILW_EAoEffect effect : results)
+				effects.Insert(effect);
         }
-
-        if (hasExempt)
-            return TILW_EAoEffect.EXEMPT;
-        if (hasAffected)
-            return TILW_EAoEffect.AFFECTED;
-        return TILW_EAoEffect.NEUTRAL;
+		
+		// Priority wins if present
+		if (effects.Contains(m_effectPriority))
+			return m_effectPriority;
+	
+		// Fallback order (explicit & predictable)
+		if (effects.Contains(TILW_EAoEffect.EXEMPT))
+			return TILW_EAoEffect.EXEMPT;
+	
+		if (effects.Contains(TILW_EAoEffect.AFFECTED))
+			return TILW_EAoEffect.AFFECTED;
+	
+		return TILW_EAoEffect.NEUTRAL;
     }
 	
-	protected TILW_EAoEffect GetVehicleEffect(notnull IEntity vehicle)
+	protected set<TILW_EAoEffect> GetVehicleEffect(notnull IEntity vehicle)
     {
-        bool hasExempt = false;
-        bool hasAffected = false;
+        set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
 
-        TILW_EAoEffect vehEffect = GetEntityEffect(vehicle);
-        if (vehEffect == TILW_EAoEffect.EXEMPT)
-            hasExempt = true;
-        else if (vehEffect == TILW_EAoEffect.AFFECTED)
-            hasAffected = true;
+        set<TILW_EAoEffect> results = GetEntityEffect(vehicle);
+		foreach(TILW_EAoEffect effect : results)
+			effects.Insert(effect);
 
 		// Check Inventory
         SCR_UniversalInventoryStorageComponent uisc = SCR_UniversalInventoryStorageComponent.Cast(vehicle.FindComponent(SCR_UniversalInventoryStorageComponent));
@@ -281,19 +274,13 @@ class TILW_AOLimitComponent : ScriptComponent
 			
 			foreach (IEntity item : items)
 			{
-				TILW_EAoEffect effect = GetEntityEffect(item);
-				if (effect == TILW_EAoEffect.EXEMPT)
-					hasExempt = true;
-				else if (effect == TILW_EAoEffect.AFFECTED)
-					hasAffected = true;
+				results = GetEntityEffect(item);
+				foreach(TILW_EAoEffect effect : results)
+					effects.Insert(effect);
 			}
         }
 
-        if (hasExempt)
-            return TILW_EAoEffect.EXEMPT;
-        if (hasAffected)
-            return TILW_EAoEffect.AFFECTED;
-        return TILW_EAoEffect.NEUTRAL;
+        return effects;
     }
 	
 	protected void UnDrawAO()

@@ -5,22 +5,23 @@ enum TILW_EVisibilityMode
 	NONE = 2
 }
 
-class TILW_AOLimitManagerClass : GenericEntityClass
+class TILW_AOLimitManagerClass : ScriptComponentClass
 {
 }
 
-class TILW_AOLimitManager : GenericEntity
+
+class TILW_AOLimitManager : ScriptComponent
 {
 	[Attribute("20", UIWidgets.Auto, "After how many seconds outside of AO players are killed", params: "0 inf 0", category: "Logic")]
 	float m_killTimer;
 	
-	[Attribute("35", UIWidgets.Auto, "Kill timer if passenger in a vehicle", params: "0 inf 0", category: "Logic")]
+	[Attribute("30", UIWidgets.Auto, "Kill timer if passenger in a vehicle", params: "0 inf 0", category: "Logic")]
 	float m_vehicleKillTimer;
 	
 	protected const string PREFAB = "{42D6CF3CCE559B8C}Prefabs/Logic/AOLimit/TILW_AOLimitManager.et";
 	protected const float CHECKFREQUENCY = 0.5;
 	
-	protected static TILW_AOLimitManager s_Instance;
+	protected static TILW_AOLimitManager m_Instance;
 	
 	protected ref array<TILW_AOLimitComponent> m_aos = new array<TILW_AOLimitComponent>();
 	
@@ -32,18 +33,19 @@ class TILW_AOLimitManager : GenericEntity
 	protected TILW_AOLimitDisplay m_display;
 	protected OnControlledEntityChangedPlayerControllerInvoker m_OnControlledEntityChanged;
 	
-	void TILW_AOLimitManager(IEntitySource src, IEntity parent)
+	override void OnPostInit(IEntity owner)
 	{
-		s_Instance = this;
+		m_Instance = this;
 		
 		if (RplSession.Mode() == RplMode.Dedicated)
 			return;
 		
-		SetEventMask(EntityEvent.FIXEDFRAME);
+		SetEventMask(owner, EntityEvent.FIXEDFRAME);
 	}
 	
 	protected void OnControlledEntityChanged(IEntity from, IEntity to)
 	{
+		m_OnControlledEntityChanged = null;
 		foreach(TILW_AOLimitComponent ao : m_aos)
 			ao.OnEntityChanged();
 	}
@@ -109,15 +111,7 @@ class TILW_AOLimitManager : GenericEntity
 	
 	static TILW_AOLimitManager GetInstance(bool create = true)
 	{
-		if (!s_Instance && create)
-		{
-			Print("TILW AO | Creating Manager");
-			
-			BaseWorld world = GetGame().GetWorld();
-			if (world)
-				s_Instance = TILW_AOLimitManager.Cast(GetGame().SpawnEntityPrefab(Resource.Load(PREFAB), world));
-		}
-		return s_Instance;
+		return m_Instance;
 	}
 	
 	protected void UpdateTimer(float timeSlice)
