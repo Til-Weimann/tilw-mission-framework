@@ -5,19 +5,8 @@ enum TILW_EVisibilityMode
 	NONE = 2
 }
 
-class TILW_AOLimitManagerClass : ScriptComponentClass
+class TILW_AOLimitManager : GameSystem
 {
-}
-
-
-class TILW_AOLimitManager : ScriptComponent
-{
-	[Attribute("20", UIWidgets.Auto, "After how many seconds outside of AO players are killed", params: "0 inf 0", category: "Logic")]
-	float m_killTimer;
-	
-	[Attribute("30", UIWidgets.Auto, "Kill timer if passenger in a vehicle", params: "0 inf 0", category: "Logic")]
-	float m_vehicleKillTimer;
-	
 	protected const string PREFAB = "{42D6CF3CCE559B8C}Prefabs/Logic/AOLimit/TILW_AOLimitManager.et";
 	protected const float CHECKFREQUENCY = 0.5;
 	
@@ -29,18 +18,18 @@ class TILW_AOLimitManager : ScriptComponent
 	protected float m_checkDelta = 0;
 
 	protected bool m_wasOutsideAO = false;
+	protected BaseWorld m_world;
 	
 	protected TILW_AOLimitDisplay m_display;
 	protected OnControlledEntityChangedPlayerControllerInvoker m_OnControlledEntityChanged;
 	
-	override void OnPostInit(IEntity owner)
+	override void OnInit()
 	{
-		m_Instance = this;
+		super.OnInit();
 		
-		if (RplSession.Mode() == RplMode.Dedicated)
-			return;
+		m_world = GetGame().GetWorld();
 		
-		SetEventMask(owner, EntityEvent.FIXEDFRAME);
+		Enable(true);
 	}
 	
 	protected void OnControlledEntityChanged(IEntity from, IEntity to)
@@ -50,8 +39,10 @@ class TILW_AOLimitManager : ScriptComponent
 			ao.OnEntityChanged();
 	}
 	
-	protected override void EOnFixedFrame(IEntity owner, float timeSlice)
+	override protected void OnUpdate(ESystemPoint point)
 	{
+		super.OnUpdate(point);
+
 		if (!m_OnControlledEntityChanged)
 		{
 			SCR_PlayerController pc = SCR_PlayerController.Cast(GetGame().GetPlayerController());
@@ -62,6 +53,8 @@ class TILW_AOLimitManager : ScriptComponent
 			m_OnControlledEntityChanged.Insert(OnControlledEntityChanged);
 		}
 		
+		float timeSlice = m_world.GetTimeSlice();
+		
 		if (m_wasOutsideAO)
 			UpdateTimer(timeSlice);
 
@@ -71,19 +64,20 @@ class TILW_AOLimitManager : ScriptComponent
 		m_checkDelta = CHECKFREQUENCY;
 		
 		bool isPlayerInsideAOs = true;
+		TILW_AOLimitComponent leftAO;
 		foreach(TILW_AOLimitComponent ao : m_aos)
 		{
 			if(!ao.IsPlayerSafe())
 			{
-				isPlayerInsideAOs = false;
+				leftAO = ao;
 				break;
 			}
 		}
 		
-		if(isPlayerInsideAOs)
-			PlayerEntersAO();
+		if(leftAO)
+			PlayerLeavesAO(leftAO);
 		else
-			PlayerLeavesAO();
+			PlayerEntersAO();
 	}
 	
 	void Register(TILW_AOLimitComponent ao)
@@ -111,7 +105,14 @@ class TILW_AOLimitManager : ScriptComponent
 	
 	static TILW_AOLimitManager GetInstance(bool create = true)
 	{
-		return m_Instance;
+		if(m_Instance)
+			return m_Instance;
+		
+		World world = GetGame().GetWorld();
+		if (!world)
+			return null;
+		
+		return TILW_AOLimitManager.Cast(world.FindSystem(TILW_AOLimitManager));
 	}
 	
 	protected void UpdateTimer(float timeSlice)
@@ -133,20 +134,20 @@ class TILW_AOLimitManager : ScriptComponent
 		}
 	}
 	
-	protected void PlayerLeavesAO()
+	protected void PlayerLeavesAO(TILW_AOLimitComponent ao)
 	{
 		if(m_wasOutsideAO)
 			return;
 		
-		Print("TILW AO | Player leaves AO");
+		Print("TILW AO | Player leaves AO: " + ao);
 	
 		SCR_PlayerController pc = SCR_PlayerController.Cast(GetGame().GetPlayerController());
 		IEntity player = pc.GetControlledEntity();
 		
 		if(CompartmentAccessComponent.GetVehicleIn(player))
-			m_timeLeft = m_vehicleKillTimer;
+			m_timeLeft = ao.m_vehicleKillTimer;
 		else
-			m_timeLeft = m_killTimer;
+			m_timeLeft = ao.m_killTimer;
 	
 		SCR_UISoundEntity.SoundEvent(SCR_SoundEvent.HINT);
 			
@@ -171,7 +172,7 @@ class TILW_AOLimitManager : ScriptComponent
 		if (display)
 			display.Show(false, UIConstants.FADE_RATE_INSTANT);
 		
-		m_timeLeft = m_killTimer;
+		m_timeLeft = 60;
 		m_wasOutsideAO = false;
 	}
 	

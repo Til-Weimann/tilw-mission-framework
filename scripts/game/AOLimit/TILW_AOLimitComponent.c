@@ -12,6 +12,13 @@ class TILW_AOLimitComponentClass : ScriptComponentClass
 
 class TILW_AOLimitComponent : ScriptComponent
 {
+	// Effect
+	[Attribute("20", UIWidgets.Auto, "After how many seconds outside of AO players are killed", params: "0 inf 0", category: "Effect")]
+	float m_killTimer;
+	
+	[Attribute("30", UIWidgets.Auto, "Kill timer if passenger in a vehicle", params: "0 inf 0", category: "Effect")]
+	float m_vehicleKillTimer;
+	
 	// Logic
 	[Attribute("1", UIWidgets.ComboBox, desc: "Which rule the AO comp priotizes", category: "Logic", enums: ParamEnumArray.FromEnum(TILW_EAoEffect))]
 	protected TILW_EAoEffect m_effectPriority;
@@ -115,9 +122,6 @@ class TILW_AOLimitComponent : ScriptComponent
 			return true;
 
 		TILW_EAoEffect effect = GetPlayerEffect(pc);
-		
-		Print("TILW | AO Effect: " + effect);
-		
 		switch (effect)
 		{
 			case TILW_EAoEffect.EXEMPT:   return true;
