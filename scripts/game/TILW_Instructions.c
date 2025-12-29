@@ -536,3 +536,108 @@ class TILW_RunScriptInstruction : TILW_BaseInstruction
 		fw.RequestRunScript(m_iScriptNumber, m_bClientScript, m_bAllowRerun);
 	}
 }
+
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Service Vehicles")]
+class TILW_ServiceVehiclesInstruction : TILW_BaseInstruction
+{
+	[Attribute("", UIWidgets.Auto, desc: "Names of vehicles to be serviced.")]
+	protected ref array<string> m_aVehicleNames;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Whether to adjust the amount of fuel.")]
+	protected bool m_bAdjustFuel;
+	
+	[Attribute("1", UIWidgets.Auto, desc: "How much fuel the vehicles should have.", params: "0 1.0 0.01")]
+	protected float m_fFuelRatio;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Whether to adjust the amount of fuel.")]
+	protected bool m_bAdjustSupplies;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "How many supplies the vehicles should carry.")]
+	protected int m_iAmountSupplies;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Whether to fully heal the vehicles, also works for some other entity types.")]
+	protected bool m_bRepair;
+	
+	override void Execute()
+	{
+		foreach (string s : m_aVehicleNames)
+		{
+			IEntity v = GetGame().GetWorld().FindEntityByName(s);
+			if (!v)
+				continue;
+			
+			if (m_bAdjustFuel)
+			{
+				SCR_FuelManagerComponent fmc = SCR_FuelManagerComponent.Cast(v.FindComponent(SCR_FuelManagerComponent));
+				array<SCR_FuelManagerComponent> fuelManagers = {};
+				if (fmc)
+				{
+					fmc.GetAllFuelManagers(v, fuelManagers);
+					fmc.SetTotalFuelPercentageOfFuelManagers(fuelManagers, m_fFuelRatio);
+				}
+			}
+			
+			if (m_bAdjustSupplies)
+			{
+				SCR_ResourceComponent resourceComponent = SCR_ResourceComponent.FindResourceComponent(v, false);
+				SCR_ResourceContainer container;
+				if (resourceComponent && resourceComponent.GetContainer(EResourceType.SUPPLIES, container))
+					container.SetResourceValue(m_iAmountSupplies);
+			}
+			
+			if (m_bRepair)
+			{
+				SCR_DamageManagerComponent dmc = SCR_DamageManagerComponent.Cast(v.FindComponent(SCR_DamageManagerComponent));
+				if (dmc)
+					dmc.FullHeal();
+			}
+		}
+	}
+}
+
+//! TILW_ChangeTimeInstruction changes the current day time
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Change time")]
+class TILW_ChangeTimeInstruction : TILW_BaseInstruction
+{
+	
+	[Attribute("8", UIWidgets.Auto, desc: "Hours\nIf this runs during the briefing, make sure to disable 'Reset Time On Game Start' in the TimeAndWeatherHandlerComponent.")]
+	protected int m_iHours;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Minutes\nIf this runs during the briefing, make sure to disable 'Reset Time On Game Start' in the TimeAndWeatherHandlerComponent.")]
+	protected int m_iMinutes;
+	
+	[Attribute("0", UIWidgets.Auto, desc: "Seconds\nIf this runs during the briefing, make sure to disable 'Reset Time On Game Start' in the TimeAndWeatherHandlerComponent.")]
+	protected int m_iSeconds;
+	
+	override void Execute()
+	{	
+		ChimeraWorld world = ChimeraWorld.CastFrom(GetGame().GetWorld());
+		TimeAndWeatherManagerEntity twm = world.GetTimeAndWeatherManager();
+		
+		twm.SetHoursMinutesSeconds(m_iHours, m_iMinutes, m_iSeconds);
+	}
+}
+
+//! TILW_ChangeWeatherInstruction changes the current weather
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Change weather")]
+class TILW_ChangeWeatherInstruction : TILW_BaseInstruction
+{
+	
+	[Attribute("", desc: "The name of the weather state as it can be found in weatherStates.conf.")]
+	protected string m_sWeatherPresetName;
+	
+	// [Attribute("5", UIWidgets.Auto, desc: "How many minutes the weather transition will take (0=instant).")]
+	// protected float m_fTransitionDuration;
+
+	[Attribute("0", UIWidgets.Auto, desc: "Whether the weather can randomly transition away from the state.")]
+	protected bool m_bAllowRandomChanges;
+	
+	override void Execute()
+	{	
+		ChimeraWorld world = ChimeraWorld.CastFrom(GetGame().GetWorld());
+		TimeAndWeatherManagerEntity twm = world.GetTimeAndWeatherManager();
+		BaseWeatherStateTransitionManager transitionManager = twm.GetTransitionManager();	
+		
+		twm.ForceWeatherTo(!m_bAllowRandomChanges, m_sWeatherPresetName); // , m_fTransitionDuration / 60);
+	}
+}

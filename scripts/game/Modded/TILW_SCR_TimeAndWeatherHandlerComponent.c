@@ -1,5 +1,8 @@
 modded class SCR_TimeAndWeatherHandlerComponent : SCR_BaseGameModeComponent
 {
+	[Attribute("1", desc: "If it's a RL gamemode, reset time when players go ingame so briefing duration does not affect starting time.",category: "Time")]
+	protected bool m_bResetTimeOnGameStart;
+	
 	[Attribute("0", category: "Override Date")]
 	protected bool m_bUseSpecifiedDate;
 	[Attribute("1", UIWidgets.Slider, "Specified day of month", "1 31 1", category: "Override Date")]
@@ -78,5 +81,50 @@ modded class SCR_TimeAndWeatherHandlerComponent : SCR_BaseGameModeComponent
 			manager.SetRainIntensityOverride(true, m_fRain);
 			manager.SetWindSpeedOverride(true, m_fWind);
 		}
+	}
+	
+	// save time
+	
+	protected int m_iSavedHours;
+	protected int m_iSavedMinutes;
+	protected int m_iSavedSeconds;
+	
+	override void SetupDaytimeAndWeather(int hours, int minutes, int seconds = 0, string loadedWeatherState = "", bool loadDone = false)
+	{
+		super.SetupDaytimeAndWeather(hours, minutes, seconds, loadedWeatherState, loadDone);
+		
+		if (!m_bResetTimeOnGameStart)
+			return;
+		
+		ChimeraWorld world = ChimeraWorld.CastFrom(GetOwner().GetWorld());
+		if (!world)
+			return;
+		
+		TimeAndWeatherManagerEntity manager = world.GetTimeAndWeatherManager();
+		if (!manager)
+			return;
+		
+		PS_GameModeCoop gamemode = PS_GameModeCoop.Cast(GetGame().GetGameMode());
+		if (!gamemode)
+			return;
+		
+		manager.GetHoursMinutesSeconds(m_iSavedHours, m_iSavedMinutes, m_iSavedSeconds);
+		
+		gamemode.GetOnGameStateChange().Insert(TILW_GameStateChange);
+	}
+	
+	protected void TILW_GameStateChange(SCR_EGameModeState state)
+	{
+		if (state != SCR_EGameModeState.GAME)
+			return;
+		
+		ChimeraWorld world = ChimeraWorld.CastFrom(GetOwner().GetWorld());
+		TimeAndWeatherManagerEntity manager = world.GetTimeAndWeatherManager();
+		if (manager)
+			manager.SetHoursMinutesSeconds(m_iSavedHours, m_iSavedMinutes, m_iSavedSeconds);
+		
+		PS_GameModeCoop gamemode = PS_GameModeCoop.Cast(GetGame().GetGameMode());
+		if (gamemode)
+			gamemode.GetOnGameStateChange().Remove(TILW_GameStateChange);
 	}
 }
