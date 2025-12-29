@@ -28,7 +28,7 @@ class TILW_AOLimitManager : GameSystem
 		super.OnInit();
 		
 		m_world = GetGame().GetWorld();
-		
+		Print("TILW | AO LIMIT OnInit");
 		Enable(true);
 	}
 	
@@ -53,8 +53,7 @@ class TILW_AOLimitManager : GameSystem
 			m_OnControlledEntityChanged.Insert(OnControlledEntityChanged);
 		}
 		
-		float timeSlice = m_world.GetTimeSlice();
-		
+		float timeSlice = m_world.GetFixedTimeSlice();
 		if (m_wasOutsideAO)
 			UpdateTimer(timeSlice);
 

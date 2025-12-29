@@ -27,7 +27,7 @@ class TILW_AOLimitComponent : ScriptComponent
 	protected bool m_invertArea;
 	
 	[Attribute("", UIWidgets.Auto, desc: "This will apply the AO to users never in the AO", category: "Logic")]
-	protected bool m_effectUsersNeverInsideAO;
+	protected bool m_effectPlayersNeverInsideAO;
 	
 	[Attribute("", UIWidgets.Auto, desc: "Factions affected by the AO limit (if empty, all factions)", category: "Logic")]
 	protected ref array<string> m_factionKeys;
@@ -118,7 +118,7 @@ class TILW_AOLimitComponent : ScriptComponent
 	    if (!m_wasEverInsideAO && inArea)
 		    m_wasEverInsideAO = true;
 		
-		if(!m_wasEverInsideAO && !m_effectUsersNeverInsideAO)
+		if(!m_wasEverInsideAO && !m_effectPlayersNeverInsideAO)
 			return true;
 
 		TILW_EAoEffect effect = GetPlayerEffect(pc);
