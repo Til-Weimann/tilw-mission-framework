@@ -32,6 +32,16 @@ class TILW_AOLimitManager : GameSystem
 		Enable(true);
 	}
 	
+	override static void InitInfo(WorldSystemInfo outInfo)
+	{
+		super.InitInfo(outInfo);
+		outInfo
+			.SetAbstract(false)
+			.SetUnique(true)
+			.SetLocation(WorldSystemLocation.Client)
+			.AddPoint(WorldSystemPoint.FixedFrame);
+	}
+	
 	protected void OnControlledEntityChanged(IEntity from, IEntity to)
 	{
 		m_OnControlledEntityChanged = null;
