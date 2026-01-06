@@ -1,3 +1,10 @@
+enum TILW_EAoEffect
+{
+	NEUTRAL,    // Default - normal AO rules
+    EXEMPT,     // IGNORE AO completely
+    AFFECTED    // FORCE AO always
+}
+
 [ComponentEditorProps(category: "GameScripted/", description: "AO Limit component")]
 class TILW_AOLimitComponentClass : ScriptComponentClass
 {
@@ -5,24 +12,42 @@ class TILW_AOLimitComponentClass : ScriptComponentClass
 
 class TILW_AOLimitComponent : ScriptComponent
 {
+	// Effect
+	[Attribute("20", UIWidgets.Auto, "After how many seconds outside of AO players are killed", params: "0 inf 0", category: "Effect")]
+	float m_killTimer;
+	
+	[Attribute("30", UIWidgets.Auto, "Kill timer if passenger in a vehicle", params: "0 inf 0", category: "Effect")]
+	float m_vehicleKillTimer;
+	
 	// Logic
-
-	[Attribute("20", UIWidgets.Auto, "After how many seconds outside of AO players are killed", params: "0 inf 0", category: "Logic")]
-	protected float m_killTimer;
-
+	[Attribute("1", UIWidgets.ComboBox, desc: "Which rule the AO comp priotizes", category: "Logic", enums: ParamEnumArray.FromEnum(TILW_EAoEffect))]
+	protected TILW_EAoEffect m_effectPriority;
+	
+	[Attribute("", UIWidgets.Auto, desc: "Inverts area AO check to consider players outside the AO shap outside.", category: "Logic")]
+	protected bool m_invertArea;
+	
+	[Attribute("", UIWidgets.Auto, desc: "This will apply the AO to users never in the AO", category: "Logic")]
+	protected bool m_effectPlayersNeverInsideAO;
+	
 	[Attribute("", UIWidgets.Auto, desc: "Factions affected by the AO limit (if empty, all factions)", category: "Logic")]
 	protected ref array<string> m_factionKeys;
 
-	[Attribute("", UIWidgets.Auto, desc: "Passengers of these vehicle prefabs (or inheriting) are NOT affected by the AO limit", params: "et", category: "Logic")]
-	protected ref array<ResourceName> m_ignoredVehicles;
+	//[Attribute("", UIWidgets.Auto, desc: "Passengers of these vehicle prefabs (or inheriting) are NOT affected by the AO limit", category: "Logic")]
+	//protected ref array<ResourceName> m_ignoredVehicles;
 	
-	//[Attribute("", UIWidgets.Auto, desc: "Members of these groups (referenced by name) are not affected by the AO limit", category: "Logic")]
-	protected ref array<string> m_ignoredGroups;
-
-	protected float m_checkFrequency = 0.5;
+	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Prefabs that EXEMPT users from this AO limit affects (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	protected ref array<ResourceName> m_exemptPrefabs;
+	
+	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Prefabs that EFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	protected ref array<ResourceName> m_affectedPrefabs;
+	
+	[Attribute("", UIWidgets.Auto, desc: "Names of entities that EXEMPT users from this AO limit affects (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	protected ref array<string> m_exemptEntityNames;
+	
+	[Attribute("", UIWidgets.Auto, desc: "Names of entities that EFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	protected ref array<string> m_affectedEntityNames;
 
 	// Visualization
-
 	[Attribute("0", UIWidgets.ComboBox, "Who can view the AO limit (everyone, affected factions, noone)", enums: ParamEnumArray.FromEnum(TILW_EVisibilityMode), category: "Visualization")]
 	protected TILW_EVisibilityMode m_visibility;
 
@@ -38,14 +63,11 @@ class TILW_AOLimitComponent : ScriptComponent
 	protected ref array<vector> m_points3D = new array<vector>();
 
 	protected ref array<MapItem> m_markers = new array<MapItem>();
-
-	protected float m_timeLeft = 0;
-	protected float m_checkDelta = 0;
-
-	protected bool m_wasOutsideAO = false;
-
-	protected TILW_AOLimitDisplay m_aoLimitDisplay;
-
+	
+	protected ref map<IEntity, ref set<TILW_EAoEffect>> m_entitiesCache = new map<IEntity, ref set<TILW_EAoEffect>>();
+	
+	protected bool m_wasEverInsideAO = false;
+	
 	void TILW_AOLimitComponent(IEntityComponentSource src, IEntity ent, IEntity parent)
 	{
 		SetEventMask(ent, EntityEvent.INIT);
@@ -64,99 +86,80 @@ class TILW_AOLimitComponent : ScriptComponent
 			Print("TILW_AOLimitComponent | Owner entity (" + GetOwner() + ") does not have enough points!", LogLevel.ERROR);
 			return;
 		}
+		
+		if(!GetGame().InPlayMode())
+			return;
 
 		pse.GetPointsPositions(m_points3D);
 		for (int i = 0; i < m_points3D.Count(); i++)
 			m_points3D[i] = pse.CoordToParent(m_points3D[i]);
-
+	
 		if (RplSession.Mode() == RplMode.Dedicated)
 			return;
-
-		SetEventMask(GetOwner(), EntityEvent.FIXEDFRAME);
+		
+		TILW_AOLimitManager.GetInstance().Register(this);
 		DrawAO();
 
 		if (m_visibility == TILW_EVisibilityMode.FACTION)
 		{
 			PS_PlayableManager pm = PS_PlayableManager.GetInstance();
-			pm.GetOnFactionChange().Insert(FactionChange);
+			pm.GetOnFactionChange().Insert(OnFactionChange);
 		}
-	}
-
-	void FactionChange(int playerId, FactionKey factionKey, FactionKey factionKeyOld)
-	{
-		if (m_factionKeys.IsEmpty() || m_visibility != TILW_EVisibilityMode.FACTION)
-			return;
-		PlayerController pc = GetGame().GetPlayerController();
-		if (!pc || pc.GetPlayerId() != playerId)
-			return;
-		if (factionKey == factionKeyOld || m_factionKeys.Contains(factionKey) == m_factionKeys.Contains(factionKeyOld))
-			return;
-		DrawAO();
-	}
-
-	protected override void EOnFixedFrame(IEntity owner, float timeSlice)
-	{
-		if (m_wasOutsideAO)
-			UpdateTimer(timeSlice);
-
-		m_checkDelta -= timeSlice;
-		if (m_checkDelta > 0)
-			return;
-		m_checkDelta = m_checkFrequency;
-
-		bool outsideAO = IsOutsideAO();
-		if (!m_wasEverInsideAO && !outsideAO)
-			m_wasEverInsideAO = true;
-		
-		if (m_wasOutsideAO == outsideAO || !m_wasEverInsideAO && outsideAO) // nothing changes, or nothing should happen
-			return;
-		
-		if (outsideAO)
-			PlayerLeavesAO(); // leaves ao
-		else
-			PlayerEntersAO(); // re-enters ao
-		
-		m_wasOutsideAO = outsideAO;
 	}
 	
-	protected IEntity m_controlledEntity;
-	protected bool m_wasEverInsideAO = false;
-
-	protected bool IsOutsideAO()
-	{
-		SCR_BaseGameMode gamemode = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
-		if (gamemode.GetState() != SCR_EGameModeState.GAME)
-			return false;
-
-		if (!IsPlayerAffected())
-			return false;
-
-		IEntity ce = GetGame().GetPlayerController().GetControlledEntity();
-		if (ce != m_controlledEntity)
-		{
-			PlayerEntersAO();
-			m_wasOutsideAO = false;
-			m_wasEverInsideAO = false;
-			m_controlledEntity = ce;
-		}
-		vector playerPos = ce.GetOrigin();
-		bool inPolygon = Math2D.IsPointInPolygonXZ(m_points3D, playerPos);
-		if (inPolygon)
-			return false;
-
-		IEntity ve = CompartmentAccessComponent.GetVehicleIn(ce);
-		if (ve && IsVehicleIgnored(ve))
-			return false;
-
-		return true;
-	}
-
-	protected bool IsPlayerAffected()
+	bool IsPlayerSafe()
 	{
 		PlayerController pc = GetGame().GetPlayerController();
-		if (!pc)
-			return false;
+		
+		if (!IsPlayerAffected(pc))
+	        return true;
+		
+		bool inArea = IsPlayerPosInsideArea(pc);
+	    if (!m_wasEverInsideAO && inArea)
+		    m_wasEverInsideAO = true;
+		
+		if(!m_wasEverInsideAO && !m_effectPlayersNeverInsideAO)
+			return true;
 
+		TILW_EAoEffect effect = GetPlayerEffect(pc);
+		switch (effect)
+		{
+			case TILW_EAoEffect.EXEMPT:   return true;
+			case TILW_EAoEffect.AFFECTED: return false;
+			case TILW_EAoEffect.NEUTRAL:  return inArea;
+		}
+
+	    return false;
+	}
+	
+	protected bool IsPlayerPosInsideArea(notnull PlayerController pc)
+	{
+		IEntity player = pc.GetControlledEntity();
+		if (!player)
+			return false;
+	
+		vector playerPos = player.GetOrigin();
+		bool inPolygon = Math2D.IsPointInPolygonXZ(m_points3D, playerPos);
+	
+		if (!m_wasEverInsideAO)
+		{
+			if ((inPolygon && !m_invertArea) || (!inPolygon && m_invertArea))
+				m_wasEverInsideAO = true;
+		}
+	
+		bool inside = inPolygon;
+		if (m_invertArea)
+			inside = !inside;
+
+		return inside;
+	}
+
+	protected bool IsPlayerAffected(notnull PlayerController pc)
+	{
+		SCR_BaseGameMode gamemode = SCR_BaseGameMode.Cast(GetGame().GetGameMode());
+	    if (gamemode.GetState() != SCR_EGameModeState.GAME)
+	        return false;
+		
 		IEntity ce = GetGame().GetPlayerController().GetControlledEntity();
 		if (!ce)
 			return false;
@@ -180,130 +183,126 @@ class TILW_AOLimitComponent : ScriptComponent
 
 		return true;
 	}
-
-	protected bool IsVehicleIgnored(IEntity e)
+	
+	protected set<TILW_EAoEffect> GetEntityEffect(notnull IEntity entity)
 	{
-		// Possible optimization: Save result for this vehicle
+		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
+	    if(m_entitiesCache.Find(entity, effects))
+	        return effects;
 
-		if (m_ignoredVehicles.IsEmpty())
-			return false;
-
-		EntityPrefabData epd = e.GetPrefabData();
-		if (!epd)
-			return false;
-		BaseContainer bc = epd.GetPrefab();
-		if (!bc)
-			return false;
-		foreach (ResourceName rn : m_ignoredVehicles)
-			if (SCR_BaseContainerTools.IsKindOf(bc, rn))
-				return true;
-
-		return false;
+		effects = new set<TILW_EAoEffect>();
+		
+	    // EXEMPT
+	    if(!m_exemptPrefabs.IsEmpty() && ArrayContainsKind(entity, m_exemptPrefabs))
+			effects.Insert(TILW_EAoEffect.EXEMPT);
+		
+	    if(!m_exemptEntityNames.IsEmpty() && m_exemptEntityNames.Contains(entity.GetName()))
+			effects.Insert(TILW_EAoEffect.EXEMPT);
+	
+	    // AFFECTED
+	    if(!m_affectedPrefabs.IsEmpty() && ArrayContainsKind(entity, m_affectedPrefabs))
+			effects.Insert(TILW_EAoEffect.AFFECTED);
+		
+	    if(!m_affectedEntityNames.IsEmpty() && m_affectedEntityNames.Contains(entity.GetName()))
+			effects.Insert(TILW_EAoEffect.AFFECTED);
+		
+		m_entitiesCache.Insert(entity, effects);
+		return effects;
 	}
+	
+	protected TILW_EAoEffect GetPlayerEffect(notnull PlayerController pc)
+    {
+		IEntity player = pc.GetControlledEntity();
+		if(!player || m_effectPriority == TILW_EAoEffect.NEUTRAL)
+			return TILW_EAoEffect.NEUTRAL;
+		
+		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
 
-	protected void UpdateTimer(float timeSlice)
-	{
-		m_timeLeft -= timeSlice;
-		m_aoLimitDisplay.SetTime(m_timeLeft);
+		// Check player entity
+		set<TILW_EAoEffect> results = GetEntityEffect(player);
+		foreach(TILW_EAoEffect effect : results)
+			effects.Insert(effect);
 
-		if (m_timeLeft < 0)
+        // Check player's inventory
+		SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(player.FindComponent(SCR_InventoryStorageManagerComponent));
+        if(inv)
 		{
-			IEntity player = GetGame().GetPlayerController().GetControlledEntity();
-			CharacterControllerComponent characterController = CharacterControllerComponent.Cast(player.FindComponent(CharacterControllerComponent));
-			if (characterController)
-				characterController.ForceDeath();
-
-			PlayerEntersAO();
+			array<IEntity> items = {};
+			inv.GetItems(items);
+		
+			foreach (IEntity item : items)
+			{
+				results = GetEntityEffect(item);
+				foreach(TILW_EAoEffect effect : results)
+					effects.Insert(effect);
+			}
 		}
-	}
-
-	protected void PlayerLeavesAO()
-	{
-		m_timeLeft = m_killTimer;
-
-		SCR_UISoundEntity.SoundEvent(SCR_SoundEvent.HINT);
-
-		SCR_PlayerController playerController = SCR_PlayerController.Cast(GetGame().GetPlayerController());
-		SCR_HUDManagerComponent hud = SCR_HUDManagerComponent.Cast(playerController.GetHUDManagerComponent());
-		m_aoLimitDisplay = TILW_AOLimitDisplay.Cast(hud.FindInfoDisplay(TILW_AOLimitDisplay));
-		m_aoLimitDisplay.SetTime(m_timeLeft);
-		m_aoLimitDisplay.Show(true, UIConstants.FADE_RATE_INSTANT);
-	}
-
-	protected void PlayerEntersAO()
-	{
-		m_timeLeft = m_killTimer;
-		if (m_aoLimitDisplay)
-			m_aoLimitDisplay.Show(false, UIConstants.FADE_RATE_INSTANT);
-	}
+		
+        // Check if in vehicle
+        IEntity ve = CompartmentAccessComponent.GetVehicleIn(player);
+        if (ve)
+        {
+            results = GetVehicleEffect(ve);
+            foreach(TILW_EAoEffect effect : results)
+				effects.Insert(effect);
+        }
+		
+		// Priority wins if present
+		if (effects.Contains(m_effectPriority))
+			return m_effectPriority;
 	
-	override void OnDelete(IEntity owner)
-	{
-		PlayerEntersAO();
-		super.OnDelete(owner);
-	}
-
-	void SetFactions(array<string> factions)
-	{
-		if (SCR_ArrayHelperT<string>.AreEqual(factions, m_factionKeys))
-			return;
-		
-		Rpc(RpcDo_SetFactions, factions);
-		RpcDo_SetFactions(factions)
-	}
+		// Fallback order (explicit & predictable)
+		if (effects.Contains(TILW_EAoEffect.EXEMPT))
+			return TILW_EAoEffect.EXEMPT;
 	
-	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
-	protected void RpcDo_SetFactions(array<string> factions)
-	{
-		m_factionKeys = factions;
-
-		if (RplSession.Mode() == RplMode.Dedicated)
-			return;
-		
-		DrawAO();
-	}
-
-	void SetPoints(array<vector> points)
-	{
-		if (points.Count() < 3) {
-			Print("TILW_AOLimitComponent | not enough points!", LogLevel.ERROR);
-			return;
-		}
-
-		Rpc(RpcDo_SetPoints, points);
-		RpcDo_SetPoints(points);
-	}
+		if (effects.Contains(TILW_EAoEffect.AFFECTED))
+			return TILW_EAoEffect.AFFECTED;
 	
+		return TILW_EAoEffect.NEUTRAL;
+    }
+	
+	protected set<TILW_EAoEffect> GetVehicleEffect(notnull IEntity vehicle)
+    {
+        set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
 
-	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
-	protected void RpcDo_SetPoints(array<vector> points)
+        set<TILW_EAoEffect> results = GetEntityEffect(vehicle);
+		foreach(TILW_EAoEffect effect : results)
+			effects.Insert(effect);
+
+		// Check Inventory
+        SCR_UniversalInventoryStorageComponent uisc = SCR_UniversalInventoryStorageComponent.Cast(vehicle.FindComponent(SCR_UniversalInventoryStorageComponent));
+        if (uisc)
+        {
+			array<IEntity> items = {};
+			uisc.GetAll(items);
+			
+			foreach (IEntity item : items)
+			{
+				results = GetEntityEffect(item);
+				foreach(TILW_EAoEffect effect : results)
+					effects.Insert(effect);
+			}
+        }
+
+        return effects;
+    }
+	
+	protected void UnDrawAO()
 	{
-		if (SCR_ArrayHelperT<vector>.AreEqual(points, m_points3D))
-			return;
-		
-		m_points3D = points;
-
-		if (RplSession.Mode() == RplMode.Dedicated)
-			return;
-		
-		EntityEvent mask = GetEventMask();
-		if (mask != EntityEvent.FIXEDFRAME)
-			SetEventMask(GetOwner(), EntityEvent.FIXEDFRAME);
-
-		DrawAO();
-	}
-
-	protected void DrawAO()
-	{
-		if (RplSession.Mode() == RplMode.Dedicated)
-			return;
-
 		foreach (MapItem marker : m_markers)
 		{
 			marker.SetVisible(false);
 			marker.Recycle();
 		}
 		m_markers.Clear();
+	}
+	
+	protected void DrawAO()
+	{
+		if (RplSession.Mode() == RplMode.Dedicated)
+			return;
+
+		UnDrawAO();
 
 		switch (m_visibility)
 		{
@@ -365,6 +364,100 @@ class TILW_AOLimitComponent : ScriptComponent
 		linkProps.SetLineWidth(m_lineWidth);
 	}
 	
+	protected bool ArrayContainsKind(IEntity entity, array<ResourceName> list)
+	{
+		EntityPrefabData epd = entity.GetPrefabData();
+		if (!epd)
+			return false;
+
+		BaseContainer bc = epd.GetPrefab();
+		if (!bc)
+			return false;
+		
+		foreach (ResourceName rn : list)
+			if (SCR_BaseContainerTools.IsKindOf(bc, rn))
+				return true;
+		
+		return false;
+	}
+	
+	void SetFactions(array<string> factions)
+	{
+		if (SCR_ArrayHelperT<string>.AreEqual(factions, m_factionKeys))
+			return;
+		
+		Rpc(RpcDo_SetFactions, factions);
+		RpcDo_SetFactions(factions)
+	}
+	
+	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
+	protected void RpcDo_SetFactions(array<string> factions)
+	{
+		m_factionKeys = factions;
+
+		if (RplSession.Mode() == RplMode.Dedicated)
+			return;
+		
+		DrawAO();
+	}
+
+	void SetPoints(array<vector> points)
+	{
+		if (points.Count() < 3) {
+			Print("TILW_AOLimitComponent | not enough points!", LogLevel.ERROR);
+			return;
+		}
+
+		Rpc(RpcDo_SetPoints, points);
+		RpcDo_SetPoints(points);
+	}
+	
+	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
+	protected void RpcDo_SetPoints(array<vector> points)
+	{
+		if (SCR_ArrayHelperT<vector>.AreEqual(points, m_points3D))
+			return;
+
+		m_points3D = points;
+
+		if (RplSession.Mode() == RplMode.Dedicated)
+			return;
+		
+		EntityEvent mask = GetEventMask();
+		if (mask != EntityEvent.FIXEDFRAME)
+			SetEventMask(GetOwner(), EntityEvent.FIXEDFRAME);
+
+		DrawAO();
+	}
+	
+	void OnEntityChanged()
+	{
+		m_wasEverInsideAO = false;
+	}
+	
+	void OnFactionChange(int playerId, FactionKey factionKey, FactionKey factionKeyOld)
+	{
+		if (m_factionKeys.IsEmpty() || m_visibility != TILW_EVisibilityMode.FACTION)
+			return;
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc || pc.GetPlayerId() != playerId)
+			return;
+		if (factionKey == factionKeyOld || m_factionKeys.Contains(factionKey) == m_factionKeys.Contains(factionKeyOld))
+			return;
+		DrawAO();
+	}
+	
+	override void OnDelete(IEntity owner)
+	{
+		super.OnDelete(owner);
+		
+		if(!GetGame().InPlayMode())
+			return;
+
+		UnDrawAO();
+		TILW_AOLimitManager.GetInstance().UnRegister(this);
+	}
+	
 	override bool RplSave(ScriptBitWriter writer)
 	{
 		int factionKeysCount = m_factionKeys.Count();
@@ -417,11 +510,4 @@ class TILW_AOLimitComponent : ScriptComponent
 		
 		return true;
 	}
-}
-
-enum TILW_EVisibilityMode
-{
-	ALL = 0,
-	FACTION = 1,
-	NONE = 2
 }
