@@ -65,21 +65,15 @@ class TILW_AOLimitSystem : GameSystem
 			return;
 		m_checkDelta = CHECKFREQUENCY;
 		
-		bool isPlayerInsideAOs = true;
-		TILW_AOLimitComponent leftAO;
 		foreach (TILW_AOLimitComponent ao : m_aos)
 		{
 			if (!ao.IsPlayerSafe())
 			{
-				leftAO = ao;
-				break;
+				PlayerOutsideAO(ao);
+				return;
 			}
 		}
-		
-		if (leftAO)
-			PlayerOutsideAO(leftAO);
-		else
-			PlayerInsideAO();
+		PlayerInsideAO();
 	}
 	
 	void Register(TILW_AOLimitComponent ao)
