@@ -34,7 +34,7 @@ class PK_EntityModifierComponent : ScriptComponent
 		super.EOnInit(owner);
 		if (!Replication.IsServer())
 			return;
-		if(m_bDamageManagerEnabled)
+		if (m_bDamageManagerEnabled)
 			GetGame().GetCallqueue().Call(SetInitialHitZoneHealth);
 		if(m_bEngineEnabled)
 			GetGame().GetCallqueue().Call(SetInitialEngineState);

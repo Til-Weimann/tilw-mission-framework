@@ -5,12 +5,9 @@ enum TILW_EVisibilityMode
 	NONE = 2
 }
 
-class TILW_AOLimitManager : GameSystem
+class TILW_AOLimitSystem : GameSystem
 {
-	protected const string PREFAB = "{42D6CF3CCE559B8C}Prefabs/Logic/AOLimit/TILW_AOLimitManager.et";
 	protected const float CHECKFREQUENCY = 0.5;
-	
-	protected static TILW_AOLimitManager m_Instance;
 	
 	protected ref array<TILW_AOLimitComponent> m_aos = new array<TILW_AOLimitComponent>();
 	
@@ -18,7 +15,6 @@ class TILW_AOLimitManager : GameSystem
 	protected float m_checkDelta = 0;
 
 	protected bool m_wasOutsideAO = false;
-	protected BaseWorld m_world;
 	
 	protected TILW_AOLimitDisplay m_display;
 	protected OnControlledEntityChangedPlayerControllerInvoker m_OnControlledEntityChanged;
@@ -26,10 +22,7 @@ class TILW_AOLimitManager : GameSystem
 	override void OnInit()
 	{
 		super.OnInit();
-		
-		m_world = GetGame().GetWorld();
-		Print("TILW | AO LIMIT OnInit");
-		Enable(true);
+		Enable(false); // will be enabled
 	}
 	
 	override static void InitInfo(WorldSystemInfo outInfo)
@@ -45,7 +38,7 @@ class TILW_AOLimitManager : GameSystem
 	protected void OnControlledEntityChanged(IEntity from, IEntity to)
 	{
 		m_OnControlledEntityChanged = null;
-		foreach(TILW_AOLimitComponent ao : m_aos)
+		foreach (TILW_AOLimitComponent ao : m_aos)
 			ao.OnEntityChanged();
 	}
 	
@@ -63,7 +56,7 @@ class TILW_AOLimitManager : GameSystem
 			m_OnControlledEntityChanged.Insert(OnControlledEntityChanged);
 		}
 		
-		float timeSlice = m_world.GetFixedTimeSlice();
+		float timeSlice = GetGame().GetWorld().GetFixedTimeSlice();
 		if (m_wasOutsideAO)
 			UpdateTimer(timeSlice);
 
@@ -74,19 +67,19 @@ class TILW_AOLimitManager : GameSystem
 		
 		bool isPlayerInsideAOs = true;
 		TILW_AOLimitComponent leftAO;
-		foreach(TILW_AOLimitComponent ao : m_aos)
+		foreach (TILW_AOLimitComponent ao : m_aos)
 		{
-			if(!ao.IsPlayerSafe())
+			if (!ao.IsPlayerSafe())
 			{
 				leftAO = ao;
 				break;
 			}
 		}
 		
-		if(leftAO)
-			PlayerLeavesAO(leftAO);
+		if (leftAO)
+			PlayerOutsideAO(leftAO);
 		else
-			PlayerEntersAO();
+			PlayerInsideAO();
 	}
 	
 	void Register(TILW_AOLimitComponent ao)
@@ -94,34 +87,32 @@ class TILW_AOLimitManager : GameSystem
 		if (RplSession.Mode() == RplMode.Dedicated)
 			return;
 		
-		if(m_aos.Contains(ao))
+		if (m_aos.Contains(ao))
 			return;
 		
 		m_aos.Insert(ao);
 		
-		Print("TILW AO | Register " + ao);
+		if (!IsEnabled())
+			Enable(true);
 	}
 	
 	void UnRegister(notnull TILW_AOLimitComponent ao)
 	{
-		if(!m_aos.Contains(ao))
+		if (!m_aos.Contains(ao))
 			return;
 		
 		m_aos.RemoveItem(ao);
 		
-		Print("TILW AO | UnRegister " + ao);
+		if (m_aos.IsEmpty() && IsEnabled())
+			Enable(false);
 	}
 	
-	static TILW_AOLimitManager GetInstance(bool create = true)
+	static TILW_AOLimitSystem GetInstance(bool create = true)
 	{
-		if(m_Instance)
-			return m_Instance;
-		
 		World world = GetGame().GetWorld();
 		if (!world)
 			return null;
-		
-		return TILW_AOLimitManager.Cast(world.FindSystem(TILW_AOLimitManager));
+		return TILW_AOLimitSystem.Cast(world.FindSystem(TILW_AOLimitSystem));
 	}
 	
 	protected void UpdateTimer(float timeSlice)
@@ -129,7 +120,7 @@ class TILW_AOLimitManager : GameSystem
 		m_timeLeft -= timeSlice;
 		
 		TILW_AOLimitDisplay display = GetDisplay();
-		if(display)
+		if (display)
 			display.SetTime(m_timeLeft);
 
 		if (m_timeLeft < 0)
@@ -139,21 +130,19 @@ class TILW_AOLimitManager : GameSystem
 			if (characterController)
 				characterController.ForceDeath();
 
-			PlayerEntersAO();
+			PlayerInsideAO();
 		}
 	}
 	
-	protected void PlayerLeavesAO(TILW_AOLimitComponent ao)
+	protected void PlayerOutsideAO(TILW_AOLimitComponent ao)
 	{
-		if(m_wasOutsideAO)
+		if (m_wasOutsideAO)
 			return;
-		
-		Print("TILW AO | Player leaves AO: " + ao);
 	
 		SCR_PlayerController pc = SCR_PlayerController.Cast(GetGame().GetPlayerController());
 		IEntity player = pc.GetControlledEntity();
 		
-		if(CompartmentAccessComponent.GetVehicleIn(player))
+		if (CompartmentAccessComponent.GetVehicleIn(player))
 			m_timeLeft = ao.m_vehicleKillTimer;
 		else
 			m_timeLeft = ao.m_killTimer;
@@ -161,7 +150,7 @@ class TILW_AOLimitManager : GameSystem
 		SCR_UISoundEntity.SoundEvent(SCR_SoundEvent.HINT);
 			
 		TILW_AOLimitDisplay display = GetDisplay();
-		if(display)
+		if (display)
 		{
 			display.SetTime(m_timeLeft);
 			display.Show(true, UIConstants.FADE_RATE_INSTANT);
@@ -170,24 +159,22 @@ class TILW_AOLimitManager : GameSystem
 		m_wasOutsideAO = true;
 	}
 	
-	protected void PlayerEntersAO()
+	protected void PlayerInsideAO()
 	{
-		if(!m_wasOutsideAO)
+		if (!m_wasOutsideAO)
 			return;
-		
-		Print("TILW AO | Player enters AO");
 		
 		TILW_AOLimitDisplay display = GetDisplay();
 		if (display)
 			display.Show(false, UIConstants.FADE_RATE_INSTANT);
 		
-		m_timeLeft = 60;
+		m_timeLeft = 60; // why 60
 		m_wasOutsideAO = false;
 	}
 	
 	TILW_AOLimitDisplay GetDisplay()
 	{
-		if(m_display)
+		if (m_display)
 			return m_display;
 		
 		SCR_HUDManagerComponent hud = SCR_HUDManagerComponent.Cast(GetGame().GetPlayerController().GetHUDManagerComponent());

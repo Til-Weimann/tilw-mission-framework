@@ -26,25 +26,22 @@ class TILW_AOLimitComponent : ScriptComponent
 	[Attribute("", UIWidgets.Auto, desc: "Inverts area AO check to consider players outside the AO shap outside.", category: "Logic")]
 	protected bool m_invertArea;
 	
-	[Attribute("", UIWidgets.Auto, desc: "This will apply the AO to users never in the AO", category: "Logic")]
-	protected bool m_effectPlayersNeverInsideAO;
-	
 	[Attribute("", UIWidgets.Auto, desc: "Factions affected by the AO limit (if empty, all factions)", category: "Logic")]
 	protected ref array<string> m_factionKeys;
 
 	//[Attribute("", UIWidgets.Auto, desc: "Passengers of these vehicle prefabs (or inheriting) are NOT affected by the AO limit", category: "Logic")]
 	//protected ref array<ResourceName> m_ignoredVehicles;
 	
-	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Prefabs that EXEMPT users from this AO limit affects (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Prefabs that prevent players from being affected (in inventory, vehicle inventory, or passenger)", category: "Logic")]
 	protected ref array<ResourceName> m_exemptPrefabs;
 	
-	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Prefabs that EFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	[Attribute("", UIWidgets.ResourceNamePicker, desc: "Prefabs that AFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
 	protected ref array<ResourceName> m_affectedPrefabs;
 	
 	[Attribute("", UIWidgets.Auto, desc: "Names of entities that EXEMPT users from this AO limit affects (in inventory, vehicle inventory, or passenger)", category: "Logic")]
 	protected ref array<string> m_exemptEntityNames;
 	
-	[Attribute("", UIWidgets.Auto, desc: "Names of entities that EFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
+	[Attribute("", UIWidgets.Auto, desc: "Names of entities that AFFECT users in this AO limit (in inventory, vehicle inventory, or passenger)", category: "Logic")]
 	protected ref array<string> m_affectedEntityNames;
 
 	// Visualization
@@ -87,7 +84,7 @@ class TILW_AOLimitComponent : ScriptComponent
 			return;
 		}
 		
-		if(!GetGame().InPlayMode())
+		if (!GetGame().InPlayMode())
 			return;
 
 		pse.GetPointsPositions(m_points3D);
@@ -97,7 +94,7 @@ class TILW_AOLimitComponent : ScriptComponent
 		if (RplSession.Mode() == RplMode.Dedicated)
 			return;
 		
-		TILW_AOLimitManager.GetInstance().Register(this);
+		TILW_AOLimitSystem.GetInstance().Register(this);
 		DrawAO();
 
 		if (m_visibility == TILW_EVisibilityMode.FACTION)
@@ -118,7 +115,7 @@ class TILW_AOLimitComponent : ScriptComponent
 	    if (!m_wasEverInsideAO && inArea)
 		    m_wasEverInsideAO = true;
 		
-		if(!m_wasEverInsideAO && !m_effectPlayersNeverInsideAO)
+		if (!m_wasEverInsideAO)
 			return true;
 
 		TILW_EAoEffect effect = GetPlayerEffect(pc);
@@ -187,23 +184,23 @@ class TILW_AOLimitComponent : ScriptComponent
 	protected set<TILW_EAoEffect> GetEntityEffect(notnull IEntity entity)
 	{
 		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
-	    if(m_entitiesCache.Find(entity, effects))
+	    if (m_entitiesCache.Find(entity, effects))
 	        return effects;
 
 		effects = new set<TILW_EAoEffect>();
 		
 	    // EXEMPT
-	    if(!m_exemptPrefabs.IsEmpty() && ArrayContainsKind(entity, m_exemptPrefabs))
+	    if (!m_exemptPrefabs.IsEmpty() && ArrayContainsKind(entity, m_exemptPrefabs))
 			effects.Insert(TILW_EAoEffect.EXEMPT);
 		
-	    if(!m_exemptEntityNames.IsEmpty() && m_exemptEntityNames.Contains(entity.GetName()))
+	    if (!m_exemptEntityNames.IsEmpty() && m_exemptEntityNames.Contains(entity.GetName()))
 			effects.Insert(TILW_EAoEffect.EXEMPT);
 	
 	    // AFFECTED
-	    if(!m_affectedPrefabs.IsEmpty() && ArrayContainsKind(entity, m_affectedPrefabs))
+	    if (!m_affectedPrefabs.IsEmpty() && ArrayContainsKind(entity, m_affectedPrefabs))
 			effects.Insert(TILW_EAoEffect.AFFECTED);
 		
-	    if(!m_affectedEntityNames.IsEmpty() && m_affectedEntityNames.Contains(entity.GetName()))
+	    if (!m_affectedEntityNames.IsEmpty() && m_affectedEntityNames.Contains(entity.GetName()))
 			effects.Insert(TILW_EAoEffect.AFFECTED);
 		
 		m_entitiesCache.Insert(entity, effects);
@@ -213,19 +210,19 @@ class TILW_AOLimitComponent : ScriptComponent
 	protected TILW_EAoEffect GetPlayerEffect(notnull PlayerController pc)
     {
 		IEntity player = pc.GetControlledEntity();
-		if(!player || m_effectPriority == TILW_EAoEffect.NEUTRAL)
+		if (!player || m_effectPriority == TILW_EAoEffect.NEUTRAL)
 			return TILW_EAoEffect.NEUTRAL;
 		
 		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
 
 		// Check player entity
 		set<TILW_EAoEffect> results = GetEntityEffect(player);
-		foreach(TILW_EAoEffect effect : results)
+		foreach (TILW_EAoEffect effect : results)
 			effects.Insert(effect);
 
         // Check player's inventory
 		SCR_InventoryStorageManagerComponent inv = SCR_InventoryStorageManagerComponent.Cast(player.FindComponent(SCR_InventoryStorageManagerComponent));
-        if(inv)
+        if (inv)
 		{
 			array<IEntity> items = {};
 			inv.GetItems(items);
@@ -233,7 +230,7 @@ class TILW_AOLimitComponent : ScriptComponent
 			foreach (IEntity item : items)
 			{
 				results = GetEntityEffect(item);
-				foreach(TILW_EAoEffect effect : results)
+				foreach (TILW_EAoEffect effect : results)
 					effects.Insert(effect);
 			}
 		}
@@ -243,7 +240,7 @@ class TILW_AOLimitComponent : ScriptComponent
         if (ve)
         {
             results = GetVehicleEffect(ve);
-            foreach(TILW_EAoEffect effect : results)
+            foreach (TILW_EAoEffect effect : results)
 				effects.Insert(effect);
         }
 		
@@ -266,7 +263,7 @@ class TILW_AOLimitComponent : ScriptComponent
         set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
 
         set<TILW_EAoEffect> results = GetEntityEffect(vehicle);
-		foreach(TILW_EAoEffect effect : results)
+		foreach (TILW_EAoEffect effect : results)
 			effects.Insert(effect);
 
 		// Check Inventory
@@ -279,7 +276,7 @@ class TILW_AOLimitComponent : ScriptComponent
 			foreach (IEntity item : items)
 			{
 				results = GetEntityEffect(item);
-				foreach(TILW_EAoEffect effect : results)
+				foreach (TILW_EAoEffect effect : results)
 					effects.Insert(effect);
 			}
         }
@@ -451,11 +448,11 @@ class TILW_AOLimitComponent : ScriptComponent
 	{
 		super.OnDelete(owner);
 		
-		if(!GetGame().InPlayMode())
+		if (!GetGame().InPlayMode())
 			return;
 
 		UnDrawAO();
-		TILW_AOLimitManager.GetInstance().UnRegister(this);
+		TILW_AOLimitSystem.GetInstance().UnRegister(this);
 	}
 	
 	override bool RplSave(ScriptBitWriter writer)
@@ -499,7 +496,7 @@ class TILW_AOLimitComponent : ScriptComponent
 			points.Insert(point);
 		}
 		
-		if(!SCR_ArrayHelperT<vector>.AreEqual(points, m_points3D) ||
+		if (!SCR_ArrayHelperT<vector>.AreEqual(points, m_points3D) ||
 		   !SCR_ArrayHelperT<string>.AreEqual(factionKeys, m_factionKeys))
 		{
 			m_factionKeys = factionKeys;

@@ -37,7 +37,7 @@ modded class SCR_PlayerController : PlayerController
 	{
 		super.OnControlledEntityChanged(from, to);
 		
-		if(m_isJIPAvailable)
+		if (m_isJIPAvailable)
 			RPC_DoSetJIP(false, string.Empty);
 		
 		GetGame().GetCallqueue().CallLater(CheckJIP, 1000, false);

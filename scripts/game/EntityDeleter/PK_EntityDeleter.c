@@ -60,7 +60,7 @@ class PK_EntityDeleter : GenericEntity
 
 		world.QueryEntitiesBySphere(owner.GetOrigin(), m_fRadius, QueryEntities);
 
-		if(m_prefabFilterList .Count() > 0) {
+		if (m_prefabFilterList .Count() > 0) {
 			array<IEntity> filteredEntities = {};
 		    foreach (IEntity e : QueryEntitiesToRemove)
 		    {

@@ -151,7 +151,7 @@ class TILW_VehicleCrewComponent: ScriptComponent
 	{
 		array<IEntity> occupants = new array<IEntity>;
 		cm.GetOccupantsOfType(occupants, ECompartmentType.TURRET);
-		foreach(IEntity gunner : occupants)
+		foreach (IEntity gunner : occupants)
 		{
 			SCR_AICombatComponent combComp = SCR_AICombatComponent.Cast(gunner.FindComponent(SCR_AICombatComponent));
 			if (combComp)
