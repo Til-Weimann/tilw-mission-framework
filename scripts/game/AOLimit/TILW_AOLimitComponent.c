@@ -175,21 +175,19 @@ class TILW_AOLimitComponent : ScriptComponent
 		set<TILW_EAoEffect> effects = new set<TILW_EAoEffect>();
 	    if (m_entitiesCache.Find(entity, effects))
 	        return effects;
-
-		effects = new set<TILW_EAoEffect>();
 		
 	    // EXEMPT
-	    if (!m_exemptPrefabs.IsEmpty() && ArrayContainsKind(entity, m_exemptPrefabs))
+	    if (ArrayContainsKind(entity, m_exemptPrefabs))
 			effects.Insert(TILW_EAoEffect.EXEMPT);
 		
-	    if (!m_exemptEntityNames.IsEmpty() && m_exemptEntityNames.Contains(entity.GetName()))
+	    if (m_exemptEntityNames.Contains(entity.GetName()))
 			effects.Insert(TILW_EAoEffect.EXEMPT);
 	
 	    // AFFECTED
-	    if (!m_affectedPrefabs.IsEmpty() && ArrayContainsKind(entity, m_affectedPrefabs))
+	    if (ArrayContainsKind(entity, m_affectedPrefabs))
 			effects.Insert(TILW_EAoEffect.AFFECTED);
 		
-	    if (!m_affectedEntityNames.IsEmpty() && m_affectedEntityNames.Contains(entity.GetName()))
+	    if (m_affectedEntityNames.Contains(entity.GetName()))
 			effects.Insert(TILW_EAoEffect.AFFECTED);
 		
 		m_entitiesCache.Insert(entity, effects);
@@ -352,6 +350,9 @@ class TILW_AOLimitComponent : ScriptComponent
 	
 	protected bool ArrayContainsKind(IEntity entity, array<ResourceName> list)
 	{
+		if (list.IsEmpty())
+			return false;
+		
 		EntityPrefabData epd = entity.GetPrefabData();
 		if (!epd)
 			return false;
