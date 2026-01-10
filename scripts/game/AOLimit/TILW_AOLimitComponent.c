@@ -301,8 +301,6 @@ class TILW_AOLimitComponent : ScriptComponent
 					return;
 			case TILW_EVisibilityMode.NONE:
 				return;
-			default:
-				break;
 		}
 
 		SCR_MapEntity mapEntity = SCR_MapEntity.GetMapInstance();
