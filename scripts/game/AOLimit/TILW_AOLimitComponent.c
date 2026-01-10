@@ -72,6 +72,9 @@ class TILW_AOLimitComponent : ScriptComponent
 
 	protected override void EOnInit(IEntity owner)
 	{
+		if (!GetGame().InPlayMode())
+			return;
+		
 		PolylineShapeEntity pse = PolylineShapeEntity.Cast(GetOwner());
 		if (!pse)
 		{
@@ -83,9 +86,6 @@ class TILW_AOLimitComponent : ScriptComponent
 			Print("TILW_AOLimitComponent | Owner entity (" + GetOwner() + ") does not have enough points!", LogLevel.ERROR);
 			return;
 		}
-		
-		if (!GetGame().InPlayMode())
-			return;
 
 		pse.GetPointsPositions(m_points3D);
 		for (int i = 0; i < m_points3D.Count(); i++)
