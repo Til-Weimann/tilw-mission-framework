@@ -111,7 +111,7 @@ class TILW_AOLimitComponent : ScriptComponent
 		if (!IsPlayerAffected(pc))
 	        return true;
 		
-		bool inArea = IsPlayerPosInsideArea(pc);
+		bool inArea = IsPlayerPosInSafeArea(pc);
 	    if (!m_wasEverInsideAO && inArea)
 		    m_wasEverInsideAO = true;
 		
@@ -129,26 +129,15 @@ class TILW_AOLimitComponent : ScriptComponent
 	    return false;
 	}
 	
-	protected bool IsPlayerPosInsideArea(notnull PlayerController pc)
+	protected bool IsPlayerPosInSafeArea(notnull PlayerController pc)
 	{
 		IEntity player = pc.GetControlledEntity();
 		if (!player)
-			return false;
+			return true;
 	
-		vector playerPos = player.GetOrigin();
-		bool inPolygon = Math2D.IsPointInPolygonXZ(m_points3D, playerPos);
-	
-		if (!m_wasEverInsideAO)
-		{
-			if ((inPolygon && !m_invertArea) || (!inPolygon && m_invertArea))
-				m_wasEverInsideAO = true;
-		}
-	
-		bool inside = inPolygon;
-		if (m_invertArea)
-			inside = !inside;
+		bool inPolygon = Math2D.IsPointInPolygonXZ(m_points3D,  player.GetOrigin());
 
-		return inside;
+		return (!m_invertArea && inPolygon) || (m_invertArea && !inPolygon);
 	}
 
 	protected bool IsPlayerAffected(notnull PlayerController pc)
@@ -496,8 +485,7 @@ class TILW_AOLimitComponent : ScriptComponent
 			points.Insert(point);
 		}
 		
-		if (!SCR_ArrayHelperT<vector>.AreEqual(points, m_points3D) ||
-		   !SCR_ArrayHelperT<string>.AreEqual(factionKeys, m_factionKeys))
+		if (!SCR_ArrayHelperT<vector>.AreEqual(points, m_points3D) || !SCR_ArrayHelperT<string>.AreEqual(factionKeys, m_factionKeys))
 		{
 			m_factionKeys = factionKeys;
 			m_points3D = points;
