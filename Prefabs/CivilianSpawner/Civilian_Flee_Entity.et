@@ -1,0 +1,11 @@
+CN_CivilianSpawnerTargetEntity {
+ ID "6692DAB8F6E1FB3F"
+ components {
+  RplComponent "{6692DAB8E35EE691}" {
+  }
+  Hierarchy "{6692DAB8ED97015E}" {
+  }
+ }
+ coords 5503.148 95.687 6087.331
+ m_targetType FLEEPOINT
+}
