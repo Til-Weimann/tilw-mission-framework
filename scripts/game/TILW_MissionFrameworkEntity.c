@@ -137,9 +137,9 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// ----- SCRIPTING SUPPORT -----------------------------------------------------------------------------------------------------------------------------------------------------------
 	
-	void SetPlayersKilledFlags(array<ref TILW_FactionPlayersKilledFlag> factionPlayersKilledFlags)
+	void SetCasualtyFlags(array<ref TILW_BaseCasualtyFlag> casualtyFlags)
 	{
-		m_factionPlayersKilledFlags = factionPlayersKilledFlags;
+		m_casualtyFlags = casualtyFlags;
 	}
 	
 	void SetMissionEvents(array<ref TILW_MissionEvent> missionEvents)
@@ -245,9 +245,6 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	[Attribute("", UIWidgets.Object, desc: "Random Flags are randomly set (or not set) before the mission starts.\nThey can e. g. be used to switch between two QRF events with different locations, based on whether a random flag was set or not.", category: "Flags")]
 	ref array<ref TILW_BaseRandomFlag> m_randomFlags;
-	
-	[Attribute("", UIWidgets.Object, desc: "DEPRECATED - USE CASUALTY FLAGS INSTEAD\nUsed to set a flag when all players of a faction were killed", category: "Flags")] // TEMP
-	ref array<ref TILW_FactionPlayersKilledFlag> m_factionPlayersKilledFlags;
 	
 	// DEBUG
 	
@@ -364,9 +361,6 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			if (n > m_maxAliveFactionPlayers.Get(f))
 				m_maxAliveFactionPlayers.Set(f, n);
 		}
-		
-		foreach (TILW_FactionPlayersKilledFlag fpkf : m_factionPlayersKilledFlags) // TEMP
-			fpkf.Evaluate();
 		
 		foreach (TILW_BaseCasualtyFlag cf : m_casualtyFlags)
 			if (TILW_FactionPlayersKilledFlag.Cast(cf))
