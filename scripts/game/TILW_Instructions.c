@@ -329,6 +329,8 @@ class TILW_SetFlagInstruction : TILW_BaseInstruction
 {
 	[Attribute("", UIWidgets.Auto, desc: "Name of the flag which should be set.")]
 	protected string m_flagName;
+	[Attribute("1", UIWidgets.Auto, desc: "Value to which the flag should be set.")]
+	protected int m_value;
 	
 	override void Execute()
 	{
@@ -345,6 +347,21 @@ class TILW_ClearFlagInstruction : TILW_BaseInstruction
 	override void Execute()
 	{
 		TILW_MissionFrameworkEntity.GetInstance().AdjustMissionFlag(m_flagName, false);
+	}
+}
+
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Adjust Flag")]
+class TILW_AdjustFlagInstruction : TILW_BaseInstruction
+{
+	[Attribute("", UIWidgets.Auto, desc: "Name of the flag which should be adjusted.")]
+	protected string m_flagName;
+	[Attribute("0", UIWidgets.Auto, desc: "Value which the flag should be incremented or decremented by.")]
+	protected int m_value;
+	
+	override void Execute()
+	{
+		int previousValue = TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_flagName);
+		TILW_MissionFrameworkEntity.GetInstance().AdjustMissionFlag(m_flagName, previousValue + m_value);
 	}
 }
 

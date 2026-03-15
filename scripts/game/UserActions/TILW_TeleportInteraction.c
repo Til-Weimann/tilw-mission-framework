@@ -38,7 +38,7 @@ class TILW_TeleportInteraction : ScriptedUserAction
 			return true;
 
 		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
-		return (fw && fw.IsMissionFlag(m_conditionFlag));
+		return (fw && fw.GetMissionFlag(m_conditionFlag));
 	}
 	//------------------------------------------------------------------------------------------------
 	override bool CanBeShownScript(IEntity user)

@@ -4,8 +4,11 @@ class TILW_ControlModeFlagClass : ScriptComponentClass
 }
 class TILW_ControlModeFlag : ScriptComponent
 {
-	[Attribute(defvalue: "", uiwidget: UIWidgets.Auto, desc: "Flag that should be set if the owner AI groups control mode matches the target mode.")]
+	[Attribute(defvalue: "", uiwidget: UIWidgets.Auto, desc: "Flag that should be adjusted if the owner AI groups control mode matches the target mode.")]
 	protected string m_flagName;
+	
+	[Attribute(defvalue: "1", uiwidget: UIWidgets.Auto, desc: "Value that the flag should be adjusted by.")]
+	protected int m_flagValue;
 	
 	[Attribute("2", UIWidgets.ComboBox, "Select target control mode - autonomous = combat movement.\nNote that with some waypoints like defend, individual soliders would engage in combat while the group stays in FOLLOWING_WAYPOINT.", enums: ParamEnumArray.FromEnum(EGroupControlMode))]
 	protected EGroupControlMode m_targetControlMode;
@@ -35,7 +38,16 @@ class TILW_ControlModeFlag : ScriptComponent
 	
 	protected void OnControlModeChanged(EGroupControlMode mode)
 	{
-		TILW_MissionFrameworkEntity.GetInstance().AdjustMissionFlag(m_flagName, mode == m_targetControlMode);
+		int adjustValue = m_flagValue;
+		if (mode != m_targetControlMode)
+			adjustValue = -m_flagValue;
+
+		TILW_MissionFrameworkEntity mfe = TILW_MissionFrameworkEntity.GetInstance();
+		if (mfe)
+		{
+			int newValue = mfe.GetMissionFlag(m_flagName) + adjustValue;
+			mfe.AdjustMissionFlag(m_flagName, newValue);
+		}
 		if (!m_continuous && mode == m_targetControlMode)
 		{
 			SCR_AIGroupInfoComponent groupInfo = SCR_AIGroupInfoComponent.Cast(GetOwner().FindComponent(SCR_AIGroupInfoComponent));
