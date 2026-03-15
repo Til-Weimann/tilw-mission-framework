@@ -167,7 +167,7 @@ class TILW_GreaterTerm : TILW_BaseTerm
 	
 	override bool Calc()
 	{
-		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_counterName) > m_matchGreater;
+		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_flagName) > m_matchGreater;
 	}
 }
 
@@ -182,6 +182,6 @@ class TILW_LessTerm : TILW_BaseTerm
 	
 	override bool Calc()
 	{
-		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_counterName) < m_matchLess;
+		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_flagName) < m_matchLess;
 	}
 }
