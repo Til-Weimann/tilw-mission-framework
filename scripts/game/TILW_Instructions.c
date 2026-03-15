@@ -334,7 +334,7 @@ class TILW_SetFlagInstruction : TILW_BaseInstruction
 	
 	override void Execute()
 	{
-		TILW_MissionFrameworkEntity.GetInstance().AdjustMissionFlag(m_flagName, true);
+		TILW_MissionFrameworkEntity.GetInstance().AdjustMissionFlag(m_flagName, m_value);
 	}
 }
 
