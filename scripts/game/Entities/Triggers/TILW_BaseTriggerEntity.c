@@ -11,9 +11,6 @@ class TILW_BaseTriggerEntity : GenericEntity
 	[Attribute("25", UIWidgets.Auto, "Radius of sphere trigger. If the parent entity is a polyline with 3+ points, the radius ignored and the trigger operates in polyline mode.", category: "Trigger Query")]
 	protected float m_queryRadius;
 
-	[Attribute("10", UIWidgets.Auto, "Period of query in seconds. OBSOLETE, WILL BE REMOVED SOON.", category: "Deprecated", params: "0.25 inf 0.25")]
-	protected float m_queryPeriod; // delete soon
-
 	[Attribute("0", UIWidgets.Auto, "Skip the discovery query (which otherwise determines the initial state immediately, skipping capture iterations)", category: "Trigger Query")]
 	protected bool m_skipFirstQuery;
 
@@ -25,9 +22,6 @@ class TILW_BaseTriggerEntity : GenericEntity
 
 
 	// STATUS SETTINGS
-
-	[Attribute("1", UIWidgets.Auto, "OBSOLETE, WILL BE REMOVED SOON. Use capture time instead.", category: "Deprecated", params: "1 inf")]
-	protected int m_captureIterations; // delete soon
 	
 	[Attribute("0", UIWidgets.Auto, "How many seconds it takes for the trigger state to change. \nWhen progress is interrupted, it starts ticking back down towards zero. \nIf 0, the trigger is captured instantly once the condition is met.", category: "Trigger Status", params: "0 inf")]
 	protected float m_captureTime;
@@ -189,16 +183,10 @@ class TILW_BaseTriggerEntity : GenericEntity
 		int deltaTime = currentTime - m_lastEvaluation;
 		m_lastEvaluation = currentTime;
 		
-		float changeTime;
-		if (m_captureTime == 0 && m_captureIterations > 1)
-			changeTime = m_captureIterations * m_queryPeriod; // Still using the old parameters
-		else	
-			changeTime = m_captureTime;
-		
 		bool condition = EvaluateCondition();
 
 		bool isDifferent = (condition != m_lastResult);
-		bool shouldChange = isDifferent && ((m_changeProgress + deltaTime) >= changeTime * 1000) && !m_firstQuery;
+		bool shouldChange = isDifferent && ((m_changeProgress + deltaTime) >= m_captureTime * 1000) && !m_firstQuery;
 
 		if (shouldChange) {
 			// Result is changing now

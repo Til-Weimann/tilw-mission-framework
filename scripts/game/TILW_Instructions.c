@@ -121,10 +121,45 @@ class TILW_SendMessageInstruction : TILW_BaseInstruction
 	
 	[Attribute("", UIWidgets.Auto, desc: "Factions that receive the message (if empty, everyone)")]
 	protected ref array<string> m_factionKeys;
-	
+
+	[Attribute("0", UIWidgets.CheckBox, desc: "If enabled, only admins (Game Masters) will see the message.")]
+	protected bool m_adminOnly;
+
 	override void Execute()
 	{
-		TILW_MissionFrameworkEntity.GetInstance().ShowGlobalHint(m_messageTitle, m_messageBody, 10, m_factionKeys);
+		TILW_MissionFrameworkEntity.GetInstance().ShowGlobalHint(m_messageTitle, m_messageBody, 10, m_factionKeys, m_adminOnly);
+	}
+	
+	void SetTitle(string title)
+	{
+		m_messageTitle = title;
+	}
+	
+	void SetBody(string body)
+	{
+		m_messageBody = body;
+	}
+}
+
+
+//! TILW_DisplayChatInfoInstruction displays an info message the text chat, optionally only to admins
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Display Info Message")]
+class TILW_DisplayChatInfoInstruction : TILW_BaseInstruction
+{
+	[Attribute("", UIWidgets.EditBox, desc: "Info message to display in text chat")]
+	protected string m_sInfoText;
+
+	[Attribute("1", UIWidgets.CheckBox, desc: "If enabled, only admins (Game Masters) will see the message.")]
+	protected bool m_bAdminOnly;
+
+	override void Execute()
+	{
+		TILW_MissionFrameworkEntity.GetInstance().ShowGlobalChatInfo(m_sInfoText, m_bAdminOnly);
+	}
+
+	void SetText(string text)
+	{
+		m_sInfoText = text;
 	}
 }
 

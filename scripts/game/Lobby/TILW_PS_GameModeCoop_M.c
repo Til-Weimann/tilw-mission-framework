@@ -1,23 +1,20 @@
 modded class PS_GameModeCoop : SCR_BaseGameMode
 {
-	
 	// OPTIONS
-	
 	[Attribute("60", UIWidgets.Object, desc: "How many seconds should safe start last?", category: "Reforger Lobby", params: "0 inf 0")]
 	int m_safeStartTime;
-	
 	
 	override void TryRespawn(RplId playableId, int playerId)
 	{
 		super.TryRespawn(playableId, playerId);
 		TILW_MissionFrameworkEntity mfe = TILW_MissionFrameworkEntity.GetInstance();
-		if (mfe)
+		if(mfe)
 			mfe.PlayerUpdate(0, null);
 	}
 
 	void TILW_SetFactionTicketCount(string fkey, int num)
 	{
-		if (m_mFactionRespawnCount.Contains(fkey)) {
+		if(m_mFactionRespawnCount.Contains(fkey)) {
 			m_mFactionRespawnCount.Get(fkey).m_iCount = num; // check if this works
 		} else {
 			PS_FactionRespawnCount frc = new PS_FactionRespawnCount();
@@ -30,114 +27,144 @@ modded class PS_GameModeCoop : SCR_BaseGameMode
 	int TILW_GetFactionTicketCount(string fkey)
 	{
 		PS_FactionRespawnCount frc = m_mFactionRespawnCount.Get(fkey);
-		if (!frc)
+		if(!frc)
 			return 0;
 		return frc.m_iCount;
 	}
 
-
-
 	// JIP SHIT
-
 	[Attribute("2", UIWidgets.ComboBox, "What is the JIP TP behavior?", "", ParamEnumArray.FromEnum(EJIPState), category: "JIP")]
 	EJIPState m_eJIPState;
 
-	[Attribute("0", UIWidgets.Auto, "If >0, disable JIP TP this many seconds into the mission.", "0 10000 0", category: "JIP")]
+	[Attribute("-1", UIWidgets.Auto, "If 0 or less disable JIP TP this many seconds into the mission.", category: "JIP")]
 	int m_denyJIPTime;
 
-	[Attribute("25", UIWidgets.Auto, "Minimum distance to SL for JIP to be available.", category: "JIP")]
-	protected int m_minDistance;
+	static const float MIN_JIP_TIME = 60;
 
-	[RplProp()]
-	WorldTimestamp m_startTime;
-
-	override protected void OnGameStateChanged()
+	EJIPResponse CanJIP(SCR_PlayerController pc, out IEntity target)
 	{
-		super.OnGameStateChanged();
+		if(m_eJIPState == EJIPState.Deny)
+			return EJIPResponse.Disabled;
+	
+		float timeSeconds = GetElapsedTime() - GetGameStartElapsedTime();
+		if(timeSeconds < MIN_JIP_TIME)
+			return EJIPResponse.Min;
+	
+		if(m_denyJIPTime > 0 && m_denyJIPTime > timeSeconds)
+			return EJIPResponse.Time;
 
-		SCR_EGameModeState state = GetState();
-		if (state == SCR_EGameModeState.GAME && !m_startTime)
-		{
-			ChimeraWorld world = GetGame().GetWorld();
-			m_startTime = world.GetLocalTimestamp();
-			Replication.BumpMe();
-		}
-	}
+		IEntity vehicle = CompartmentAccessComponent.GetVehicleIn(pc.GetControlledEntity());
+		if(vehicle)
+			return EJIPResponse.InVehicle;
 
-	void TryJIP(SCR_PlayerController playerController)
-	{
-		int playerId = playerController.GetPlayerId();
-		IEntity player = GetGame().GetPlayerManager().GetPlayerControlledEntity(playerId);
-		if (!player)
-			return;
+		SCR_AIGroup group = SCR_GroupsManagerComponent.GetInstance().GetPlayerGroup(pc.GetPlayerId());
+		if(!group)
+			return EJIPResponse.Group;
+	
+		array<IEntity> entites = {};
 
-		ChimeraWorld world = GetGame().GetWorld();
-		WorldTimestamp currentTime = world.GetLocalTimestamp();
-		if (currentTime.LessEqual(m_startTime.PlusSeconds(120)))
-		{
-			playerController.SetJIP(false);
-			return playerController.SetJIP(false);
-		}
-
-		if (m_denyJIPTime)
-		{
-			if (currentTime.Greater(currentTime.PlusSeconds(m_denyJIPTime)))
-				return playerController.SetJIP(false, "JIP deny, time limit reached!");
-		}
-
-		SCR_PlayerControllerGroupComponent groupComp = SCR_PlayerControllerGroupComponent.GetPlayerControllerComponent(playerId);
-		SCR_AIGroup group = groupComp.GetPlayersGroup();
-		if (!group)
-			return playerController.SetJIP(false);
-
-		IEntity targetEntity;
 		IEntity leader = group.GetLeaderEntity();
-		if (!leader || leader == player || !EntityUtils.IsPlayer(leader))
+		if(leader)
+			entites.Insert(leader);
+		
+		array<AIAgent> agents = {};
+		group.GetAgents(agents);
+		foreach (AIAgent agent : agents)
 		{
-			array<AIAgent> agents = {};
-			group.GetAgents(agents);
-			foreach (AIAgent agent : agents)
-			{
-				IEntity	entity = agent.GetControlledEntity();
-				if (!entity)
-					continue;
-
-				if (entity == leader)
-					continue;
-
-				if (!EntityUtils.IsPlayer(entity))
-					continue;
-
-				targetEntity = entity;
-				break;
-			}
+			IEntity _ent = agent.GetControlledEntity();
+			if(_ent == leader)
+				continue;
+			
+			entites.Insert(_ent);
 		}
-		else
+		
+		foreach(IEntity entity : entites)
 		{
-			targetEntity = leader;
+			if(!IsValidJIPTarget(entity, pc))
+				continue;
+			
+			target = entity;
+			break;
 		}
-
-		if (!targetEntity)
-			return playerController.SetJIP(false, "No players found.");
-
-		IEntity vehicle = CompartmentAccessComponent.GetVehicleIn(targetEntity);
-		if (vehicle)
-		{
-			playerController.GetInVehicle(vehicle);
-			return;
-		}
-
-		float distance = vector.Distance(player.GetOrigin(), targetEntity.GetOrigin());
-		if (distance < m_minDistance)
-			return playerController.SetJIP(false, "JIP Deny, close to team mates.");
-
-		vector transform[4];
-		targetEntity.GetTransform(transform);
-
-		vector behindPosition = transform[3] - (transform[2] * 0.5);
-
-		playerController.Teleport(behindPosition);
+	
+		if(!target)
+			return EJIPResponse.Target;
+	
+		return EJIPResponse.Allowed;
 	}
+	
+	bool IsValidJIPTarget(IEntity target, SCR_PlayerController pc)
+	{
+		if(!target || !EntityUtils.IsPlayer(target))
+			return false;
+		
+		IEntity player = pc.GetControlledEntity();
+		if(player == target)
+			return false;
+
+		IEntity vehicle = CompartmentAccessComponent.GetVehicleIn(target);
+		if(vehicle)
+		{
+			SCR_BaseCompartmentManagerComponent cm = SCR_BaseCompartmentManagerComponent.Cast(vehicle.FindComponent(SCR_BaseCompartmentManagerComponent));
+			if(!cm)
+				return false;
+			
+			bool hasFree = cm.HasFreeCompartmentOfTypes({ECompartmentType.CARGO, ECompartmentType.PILOT, ECompartmentType.TURRET});
+			if(!hasFree)
+				return false;
+		}
+	
+		return true;
+	}
+	
+	EJIPResponse TryJIP(SCR_PlayerController pc)
+	{
+		IEntity target;
+		EJIPResponse response = CanJIP(pc, target);
+		if(response != EJIPResponse.Allowed)
+			return response;
+
+		IEntity player = pc.GetControlledEntity();
+		if(!player)
+			return EJIPResponse.Target;
+		
+		IEntity vehicle = CompartmentAccessComponent.GetVehicleIn(target);
+		if(vehicle)
+		{
+			CompartmentAccessComponent access = CompartmentAccessComponent.Cast(target.FindComponent(CompartmentAccessComponent));
+			if(!access)
+				return EJIPResponse.Target;
+
+			pc.GetInVehicle(vehicle);
+			Print("TILWFW | Player JIPed: " + SCR_PlayerNamesFilterCache.GetInstance().GetPlayerDisplayName(pc.GetPlayerId()));
+			
+			return EJIPResponse.Sucess;
+		}
+		
+		vector transform[4];
+		target.GetWorldTransform(transform);
+		
+		vector forward = transform[2];
+		forward[1] = 0;
+		transform[3] = transform[3] - forward * 1.0;
+		
+		pc.Teleport(transform);
+		Print("TILWFW | Player JIPed: " + SCR_PlayerNamesFilterCache.GetInstance().GetPlayerDisplayName(pc.GetPlayerId()));
+
+		return EJIPResponse.Sucess;
+	}
+}
+
+enum EJIPResponse
+{
+	Disabled,
+	Min,
+	Time,
+	InVehicle,
+	Group,
+	Target,
+	Allowed,
+	Sucess
 }
 
 enum EJIPState
@@ -150,15 +177,17 @@ enum EJIPState
 [BaseContainerProps()]
 class TILW_ManualJIPAvailable : SCR_AvailableActionCondition
 {
+	protected SCR_PlayerController pc;
+	
 	override bool IsAvailable(SCR_AvailableActionsConditionData data)
 	{
-		SCR_PlayerController playerController = SCR_PlayerController.Cast(GetGame().GetPlayerController());
-		if (!playerController)
+		if(!pc)
+		{
+			pc = SCR_PlayerController.Cast(GetGame().GetPlayerController());
 			return false;
+		}
+		
 
-		if (playerController.m_isJIPAvailable && playerController.CanJIP())
-			return true;
-
-		return false;
+		return pc.m_isJIPAvailable;
 	}
 }

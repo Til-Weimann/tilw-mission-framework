@@ -90,7 +90,7 @@ class TILW_TriggerSystem : GameSystem
 		
 		m_characters.Remove(index);
 		
-		if (m_currentIndex > 0 && index < m_currentIndex && m_characters.Count() > index)
+		if (m_currentIndex > 0 && index < m_currentIndex && m_characters.Count() > index && m_characters[index])
 			ProcessCharacter(m_characters[index]); // Process swapback character
 	}
 	

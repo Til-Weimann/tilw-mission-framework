@@ -5,102 +5,35 @@
 class PK_EntityDeleterClass : GenericEntityClass
 {
 }
-
-// The oroginal SCR_PrefabDeleter does not work correctly. Test by placing it over 10+ entities and see how it does not correctly delete all.
-// This behavior was confirmed by BI dev on Discord.
-
-// Massive thanks to Blue and Cunnah for bringing this code to life.
-
 //------------------------------------------------------------------------------------------------
 class PK_EntityDeleter : GenericEntity
 {
+	// Modified version of SCR_PrefabDeleter
+	// Adds support for prefab filtering and fixes the self deletion and mid-query deletion bugs
+	
 	[Attribute("www.youtube.com/watch?v=D-Bb66hJnqE", UIWidgets.Object, 
 	desc: "INSTRUCTIONS:\n\n- Use the Prefab Picker tool to build a prefab list.\n- Right-click the prefab list to copy/paste between entities.\n- Ctrl+Click prefabs in the picker tool to add/remove from the filter list.", 
 	category: "Entity Deleter")]
-	string m_HowToUsePrefabPickerTool;
+	protected string m_HowToUsePrefabPickerTool;
 	
 	[Attribute(defvalue: "20", uiwidget: UIWidgets.Slider, desc: "Radius in which entities are deleted.\nEntities with the EntityProtectorComponent are ignored, so are entities with hierarchy parents that have it.", "0 1000 1", category: "Entity Deleter")]
 	protected float m_fRadius;
 
-	[Attribute("", UIWidgets.ResourceAssignArray, desc: "List of prefab resources used to filter which entities are deleted. If empty, all entities in the area are deleted", category: "Entity Deleter", params: "et")]
-	protected ref array<ResourceName> m_prefabFilterList ;
+	[Attribute("", UIWidgets.ResourceAssignArray, desc: "What kinds of entities should (or should not) be deleted. If empty, all entities are deleted. Recognizes inheritance.", category: "Entity Deleter", params: "et")]
+	protected ref array<ResourceName> m_prefabFilterList;
 	
-	[Attribute("0", UIWidgets.Auto, desc: "If enabled, entities whose prefabs are NOT in the list will be deleted. If disabled, only entities whose prefabs are in the list will be deleted.", category: "Entity Deleter")]
-	bool m_excludePrefabsInList;
+	[Attribute("0", UIWidgets.Auto, desc: "If enabled, prefabs in the filter list will be excluded from deletion. Otherwise, the filter will limit deletion to the listed prefabs.", category: "Entity Deleter")]
+	protected bool m_excludePrefabsInList;
 	
-	private ref array<IEntity> QueryEntitiesToRemove;
+	[Attribute("0", UIWidgets.Auto, desc: "If enabled, only entities with VObjects (e. g. mesh or particle) are deleted, not purely logical entities.", category: "Entity Deleter")]
+	protected bool m_bVObjectsOnly;
+	
+	[Attribute("1", UIWidgets.Auto, desc: "Whether to show a preview of the deletion radius in the World Editor.", category: "Entity Deleter")]
+	protected bool m_bPreviewShape;
+	
+	protected ref array<IEntity> m_aEntitiesToDelete = {};
 
-	//------------------------------------------------------------------------------------------------
-	// Find all entities inside QueryEntitiesBySphere and add them to array. Discards any entries where name or parrents name is in list.
-	// If only parrent have the specific name, all child entities must have the Hierarchy component.
-	// Seems easier to add Hierarchy component, than to rename all entities.
-
-	private bool QueryEntities(IEntity e)
-	{
-
-		// Add PK_PrefabDeleterComponent to all entities that should not be deleted.
-		// Adding by Prefab details and by Prefab Name both had issues due to Hierarchy not always being added to prefab children. So if you are changing the name, you might as well add a new component. Hopefully an easier way to add components to multiple entities will appear
-		if (!e.FindComponent(PK_EntityProtectorComponent) && !GetParent())
-			QueryEntitiesToRemove.Insert(e);
-		return true;
-
-	}
-
-
-	//------------------------------------------------------------------------------------------------
-	override void EOnActivate(IEntity owner)
-	{
-		QueryEntitiesToRemove = {};
-		// server only
-		RplComponent rplComponent = RplComponent.Cast(owner.FindComponent(RplComponent));
-		if (rplComponent && !rplComponent.IsMaster())
-			return;
-
-		BaseWorld world = GetWorld();
-
-		world.QueryEntitiesBySphere(owner.GetOrigin(), m_fRadius, QueryEntities);
-
-		if (m_prefabFilterList .Count() > 0) {
-			array<IEntity> filteredEntities = {};
-		    foreach (IEntity e : QueryEntitiesToRemove)
-		    {
-		        ResourceName prefabName = e.GetPrefabData().GetPrefab().GetName();
-		        bool found = false;
-		        foreach (ResourceName allowedPrefab : m_prefabFilterList )
-		        {
-		            if (prefabName == allowedPrefab.GetPath())
-		            {
-		                found = true;
-		                break;
-		            }
-		        }
-		        if (found && !m_excludePrefabsInList)
-		        {
-		            filteredEntities.Insert(e);
-		        }
-				if (!found && m_excludePrefabsInList)
-		        {
-		            filteredEntities.Insert(e);
-		        }
-		    }
-		    QueryEntitiesToRemove = filteredEntities;
-		}
-		
-		// Removes all entities. This is a hack, until the original SCR_PrefabDeleter works correctly
-		foreach (IEntity e : QueryEntitiesToRemove)
-		{
-			SCR_EntityHelper.DeleteEntityAndChildren(e);
-		}
-
-		// destroy self
-		delete owner;
-	}
-
-
-	//------------------------------------------------------------------------------------------------
-	// constructor
-	//! \param[in] src
-	//! \param[in] parent
+	
 	void PK_EntityDeleter(IEntitySource src, IEntity parent)
 	{
 		if (!GetGame().InPlayMode())
@@ -109,8 +42,53 @@ class PK_EntityDeleter : GenericEntity
 		SetEventMask(EntityEvent.INIT);
 	}
 	
-
+	override void EOnInit(IEntity owner)
+	{
+		super.EOnInit(owner);
+		if (!Replication.IsServer())
+			return;
+		GetGame().GetCallqueue().Call(PerformDeletion);
+	}
 	
+	protected void PerformDeletion()
+	{
+		EQueryEntitiesFlags flags = EQueryEntitiesFlags.ALL;
+		if (m_bVObjectsOnly)
+			flags = EQueryEntitiesFlags.WITH_OBJECT;
+		GetWorld().QueryEntitiesBySphere(GetOrigin(), m_fRadius, AddEntity, null, flags);
+		
+		foreach (IEntity e : m_aEntitiesToDelete)
+			SCR_EntityHelper.DeleteEntityAndChildren(e);
+		
+		SCR_EntityHelper.DeleteEntityAndChildren(this);
+	}
+	
+	private bool AddEntity(IEntity e)
+	{
+		if (e.GetParent() || e.FindComponent(PK_EntityProtectorComponent) || e.IsInherited(PK_EntityDeleter) || e.IsInherited(SCR_PrefabDeleterEntity))
+			return true;
+		
+		if (!m_prefabFilterList.IsEmpty() && IsInPrefabList(e) == m_excludePrefabsInList)
+			return true;
+		
+		m_aEntitiesToDelete.Insert(e);
+		return true;
+	}
+	
+	protected bool IsInPrefabList(IEntity e)
+	{
+		EntityPrefabData prefabData = e.GetPrefabData();
+		if (!prefabData)
+			return false;
+		BaseContainer container = prefabData.GetPrefab();
+		while (container)
+		{
+			if (m_prefabFilterList.Contains(container.GetResourceName()))
+				return true;
+			container = container.GetAncestor();
+		}
+		return false;
+	}
 
 #ifdef WORKBENCH
 
@@ -122,15 +100,11 @@ class PK_EntityDeleter : GenericEntity
 	//------------------------------------------------------------------------------------------------
 	override void _WB_AfterWorldUpdate(float timeSlice)
 	{
-
-		auto origin = GetOrigin();
-		auto radiusShape = Shape.CreateSphere(COLOR_YELLOW, ShapeFlags.WIREFRAME | ShapeFlags.ONCE, origin, m_fRadius);
-
 		super._WB_AfterWorldUpdate(timeSlice);
+		Shape debugShape = null;
+		if (m_bPreviewShape)
+			Shape radiusShape = Shape.CreateSphere(COLOR_YELLOW, ShapeFlags.WIREFRAME | ShapeFlags.ONCE, GetOrigin(), m_fRadius);
 	}
-	
-	
-	
 
 #endif
 

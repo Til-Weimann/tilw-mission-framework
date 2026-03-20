@@ -16,6 +16,9 @@ modded class SCR_CharacterControllerComponent : CharacterControllerComponent
 			return;
 		if (m_fwCount != "")
 			GetGame().GetCallqueue().CallLater(AddDeath, 250, false); // symmetry to avoid life removal attempt before addition
+		TILW_TriggerSystem ts = TILW_TriggerSystem.GetInstance();
+		if (ts)
+			ts.RemoveCharacter(GetCharacter());
 	}
 	void ~SCR_CharacterControllerComponent()
 	{

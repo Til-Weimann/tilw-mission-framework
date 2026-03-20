@@ -23,95 +23,68 @@ modded class SCR_PlayerController : PlayerController
 	{
 		SCR_HintUIInfo customHint = SCR_HintUIInfo.CreateInfo(description, name, duration, type, fieldManualEntry, isTimerVisible);
 		SCR_HintManagerComponent hintManager = SCR_HintManagerComponent.GetInstance();
-		if (hintManager)
+		if(hintManager)
 			return hintManager.Show(customHint, isSilent, ignoreShown);
 		return false;
 	}
 	
 	// ----- JIP TELEPORT -----------------------------------------------------------------------------------------------------------------------------------------------------------
-	
 	bool m_isJIPAvailable = false;
-	protected int m_denyJIPManual = 120;
+	protected static const float MAX_JIP_TIME = 120;
 	
+	override protected void OnInit(IEntity owner)
+	{
+		super.OnInit(owner);
+		
+		GetGame().GetInputManager().AddActionListener("TILW_ManualJIP", EActionTrigger.DOWN, ManualJIP);
+	}
+
 	override void OnControlledEntityChanged(IEntity from, IEntity to)
 	{
 		super.OnControlledEntityChanged(from, to);
 		
-		if (m_isJIPAvailable)
-			RPC_DoSetJIP(false, string.Empty);
-		
-		GetGame().GetCallqueue().CallLater(CheckJIP, 1000, false);
+		if(to.GetPrefabData().GetPrefabName() != "{ADDE38E4119816AB}Prefabs/InitialPlayer_Version2.et")
+			CheckJIP();
 	}
 	
 	protected void CheckJIP()
 	{
 		PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-		if (!gm)
+		if(!gm || gm.GetState() != SCR_EGameModeState.GAME)
 			return;
-		
-		if(!gm.m_startTime)
+
+		float timeSeconds = gm.GetElapsedTime() - gm.GetGameStartElapsedTime();
+		if(timeSeconds < gm.MIN_JIP_TIME)
 			return;
-		
+	
 		switch (gm.m_eJIPState)
 		{
 		    case EJIPState.Deny:
 				return;
 		
 		    case EJIPState.Manual:
-		        RPC_DoSetJIP(true, string.Empty);
+		        CanJIP();
 				break;
 
 		    case EJIPState.Auto:
-		        if(CanJIP())
-					TryJIP();
+		        TryJIP();
 		        break;
 		}
 	}
 	
-	bool CanJIP()
+	void CanJIP()
+	{
+		Rpc(RPC_CanJIP);
+	}
+	
+	[RplRpc(RplChannel.Reliable, RplRcver.Server)]
+	protected void RPC_CanJIP()
 	{
 		PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-		if (!gm)
-			return false;
-		
-		if(gm.m_eJIPState == EJIPState.Deny)
-			return false;
-		
-		if(!gm.m_startTime)
-			return false;
-		
-		ChimeraWorld world = GetGame().GetWorld();
-		WorldTimestamp currentTime = world.GetServerTimestamp();
-		if(currentTime.LessEqual(gm.m_startTime.PlusSeconds(120)))
-			return false;
+		EJIPResponse response = gm.CanJIP(this, null);
+		HandleJIP(response);
+	}
 
-		if(gm.m_denyJIPTime)
-		{
-			if(currentTime.Greater(currentTime.PlusSeconds(gm.m_denyJIPTime)))
-				return false;
-		}
-		
-		CameraBase camera = GetGame().GetCameraManager().CurrentCamera();
-		if(!PlayerCamera.Cast(camera))
-			return false;
-		
-		IEntity player = GetGame().GetPlayerController().GetControlledEntity();
-		if(!player)
-			return false;
-		
-		IEntity vehicle = CompartmentAccessComponent.GetVehicleIn(player);
-		if(vehicle)
-			return false;
-		
-		return true;
-	}
-	
-	protected void ManualJIP()
-	{
-		if(CanJIP())
-			TryJIP();
-	}
-	
 	protected void TryJIP()
 	{
 		Rpc(RPC_AskTryJIP);
@@ -121,56 +94,112 @@ modded class SCR_PlayerController : PlayerController
 	protected void RPC_AskTryJIP()
 	{
 		PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-		if (!gm)
+		if(!gm)
 			return;
-		if(gm)
-			gm.TryJIP(this);
+		
+		EJIPResponse response = gm.TryJIP(this);
+		
+		HandleJIP(response);
 	}
 	
-	void SetJIP(bool isAllowed, string msg = string.Empty)
+	void HandleJIP(EJIPResponse response)
 	{
-		Rpc(RPC_DoSetJIP, isAllowed, msg);
+		Rpc(RPC_HandleJIP, response);
 	}
 	
 	[RplRpc(RplChannel.Reliable, RplRcver.Owner)]
-	protected void RPC_DoSetJIP(bool available, string msg)
+	protected void RPC_HandleJIP(EJIPResponse response)
 	{
-		// Print("TILW_JIPPlayerComponent.RPC_DoSetJIP");
-
-		if(available)
+		Print("TILWFW | JIP Response: " + response);
+		
+		switch(response)
 		{
-			if(m_isJIPAvailable)
-			{
-				GetGame().GetCallqueue().Remove(RPC_DoSetJIP);
-				GetGame().GetCallqueue().CallLater(RPC_DoSetJIP, m_denyJIPManual * 1000, false, false, string.Empty);
-			}
-			else
-			{
-				GetGame().GetInputManager().AddActionListener("TILW_ManualJIP", EActionTrigger.DOWN, ManualJIP);
-				GetGame().GetCallqueue().CallLater(RPC_DoSetJIP, m_denyJIPManual * 1000, false, false, string.Empty);
-			}
+			case EJIPResponse.Disabled:
+				JIPHint("JIP is disabled for this mission.");
+				SetJIP(false);
+				break;
+			case EJIPResponse.Min:
+				JIPHint("JIP is below the minimum time for this mission.");
+				SetJIP(false);
+				break;
+			case EJIPResponse.Time:
+				JIPHint("JIP is past the allowed time for this mission.");
+				SetJIP(false);
+				break;
+			case EJIPResponse.InVehicle:
+				JIPHint("Unable to JIP while in a Vehicle. Exit the vehicle and try to JIP.");
+				SetJIP(true);
+				break;
+			case EJIPResponse.Group:
+				JIPHint("No group available. Join a group and try to JIP.");
+				SetJIP(true);
+				break;
+			case EJIPResponse.Target:
+				JIPHint("No available JIP target. Please wait and try to JIP in a few seconds.");
+				SetJIP(true);
+				break;
+			case EJIPResponse.Allowed:
+				JIPHint("Double tap J to teleport JIP.", "JIP Available");
+				SetJIP(true);
+				break;
+			case EJIPResponse.Sucess:
+				SetJIP(false, true);
+				break;
+			default:
+				SetJIP(false);
+				break;
 		}
-		else
+	}
+	
+	void JIPHint(string msg, string title = "JIP Denied")
+	{
+		MenuManager menuManager = GetGame().GetMenuManager();
+		if(!menuManager)
+			return;
+		
+		PS_SpectatorMenu spectatorMenu = PS_SpectatorMenu.Cast(menuManager.FindMenuByPreset(ChimeraMenuPreset.SpectatorMenu));
+		if(spectatorMenu.IsOpen())
+			return;
+		
+		PS_CoopLobby coopMenu = PS_CoopLobby.Cast(menuManager.FindMenuByPreset(ChimeraMenuPreset.CoopLobby));
+		if(coopMenu.IsOpen())
+			return;
+		
+		TILW_ShowHint(msg, title, 15);
+	}
+	
+	protected void SetJIP(bool enabled, bool deactivate = false)
+	{
+		GetGame().GetCallqueue().Remove(SetJIP);
+		
+		if(enabled)
+			GetGame().GetCallqueue().CallLater(SetJIP, MAX_JIP_TIME * 1000, false, false);
+		
+		if(deactivate)
 		{
-			GetGame().GetInputManager().RemoveActionListener("TILW_ManualJIP", EActionTrigger.DOWN, ManualJIP);
-			GetGame().GetCallqueue().Remove(RPC_DoSetJIP);
+			PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
+			gm.m_eJIPState = EJIPState.Deny;
 		}
 		
-		m_isJIPAvailable = available;
-
-		if(msg != string.Empty)
-			TILW_ShowHint(msg, "JIP Denied");
+		m_isJIPAvailable = enabled;
+	}
+	
+	protected void ManualJIP()
+	{
+		if(!m_isJIPAvailable)
+			return;
+		
+		TryJIP();
 	}
 	
 	void GetInVehicle(IEntity vehicle)
 	{
-		RplComponent rpl = RplComponent.Cast(vehicle.FindComponent(RplComponent));		
-		
-		Rpc(RPC_DoGetInVehicle, rpl.Id());
+		RplComponent rpl = RplComponent.Cast(vehicle.FindComponent(RplComponent));
+		Rpc(RPC_GetInVehicle, rpl.Id());
 	}
 	
 	[RplRpc(RplChannel.Reliable, RplRcver.Owner)]
-	protected void RPC_DoGetInVehicle(RplId rplId)
+	protected void RPC_GetInVehicle(RplId rplId)
 	{
 		IEntity entity = RplComponent.Cast(Replication.FindItem(rplId)).GetEntity();
 		if(!entity)
@@ -182,32 +211,33 @@ modded class SCR_PlayerController : PlayerController
 		
 		SCR_CompartmentAccessComponent compartment = SCR_CompartmentAccessComponent.Cast(player.FindComponent(SCR_CompartmentAccessComponent));
 		if(compartment.MoveInVehicleAny(entity))
-			return RPC_DoSetJIP(false, string.Empty);
-		
-		RPC_DoSetJIP(true, "Unable to JIP into full vehicle.\n\nTry again in a bit!");
-	}
-
-	void Teleport(vector position)
-	{
-		Rpc(RPC_DoTeleport, position);
+			return;
 	}
 	
-    [RplRpc(RplChannel.Reliable, RplRcver.Owner)]
-	protected void RPC_DoTeleport(vector position)
+	void Teleport(vector transform[4])
 	{
-		IEntity player = GetGame().GetPlayerController().GetControlledEntity();
+		Rpc(RPC_Teleport, transform);
+	}
+	
+	[RplRpc(RplChannel.Reliable, RplRcver.Owner)]
+	protected void RPC_Teleport(vector transform[4])
+	{
+		IEntity player = GetControlledEntity();
 		if(!player)
 			return;
 		
-		Physics physics = player.GetPhysics();
-		if (physics)
-		{
-	        physics.SetVelocity(vector.Zero);
-	        physics.SetAngularVelocity(vector.Zero);
-		}
+		BaseGameEntity baseGameEntity = BaseGameEntity.Cast(player);
+		if(!baseGameEntity)
+			return;
 		
-		player.SetOrigin(position);
-		RPC_DoSetJIP(false, string.Empty);
+		baseGameEntity.Teleport(transform);
+		
+		Physics phys = player.GetPhysics();
+		if(phys)
+		{
+			phys.SetVelocity(vector.Zero);
+			phys.SetAngularVelocity(vector.Zero);
+		}
 	}
 }
 

@@ -18,13 +18,13 @@ modded class SCR_CharacterControllerComponent
 			m_safestartActive = false;
 		#endif
 		
-		if (m_safestartActive)
-			HandleSafestart(am);
+		//if (m_safestartActive)
+		//	HandleSafestart(am);
 	}
 	
 	protected void HandleSafestart(ActionManager am)
 	{
-		if (ShouldSafestartBeActive())
+		if (!ShouldSafestartBeActive())
 		{
 			m_safestartActive = false;
 			return;
@@ -47,18 +47,13 @@ modded class SCR_CharacterControllerComponent
 	{
 		PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
 		if (!gm || gm.m_safeStartTime <= 0)
-			return true;
-		
-		if (!gm.m_startTime)
 			return false;
 		
-		ChimeraWorld world = GetGame().GetWorld();
-		WorldTimestamp currentTime = world.GetServerTimestamp();
-		
-		if (currentTime.Greater(gm.m_startTime.PlusSeconds(gm.m_safeStartTime)))
-			return true;
+		float timeSeconds = gm.GetElapsedTime() - gm.GetGameStartElapsedTime();
+		if (timeSeconds >= gm.m_safeStartTime)
+			return false;
 
-		return false;
+		return true;
 	}
 	
 	protected void NotifyPlayer()

@@ -16,7 +16,7 @@ class TILW_PresenceTriggerEntity : TILW_BaseTriggerEntity
 
 	// CONDITION SETTINGS
 
-	[Attribute("1", UIWidgets.Auto, "What percentage of the specified entities has to be present.", category: "Trigger Condition", params: "0 inf 1")]
+	[Attribute("1", UIWidgets.Auto, "What percentage of the specified entities has to be present.", category: "Trigger Condition", params: "0 1 0.01")]
 	protected float m_ratioThreshold;
 
 

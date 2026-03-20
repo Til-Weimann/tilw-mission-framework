@@ -139,9 +139,9 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// ----- SCRIPTING SUPPORT -----------------------------------------------------------------------------------------------------------------------------------------------------------
 	
-	void SetPlayersKilledFlags(array<ref TILW_FactionPlayersKilledFlag> factionPlayersKilledFlags)
+	void SetCasualtyFlags(array<ref TILW_BaseCasualtyFlag> casualtyFlags)
 	{
-		m_factionPlayersKilledFlags = factionPlayersKilledFlags;
+		m_casualtyFlags = casualtyFlags;
 	}
 	
 	void SetMissionEvents(array<ref TILW_MissionEvent> missionEvents)
@@ -247,9 +247,6 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	[Attribute("", UIWidgets.Object, desc: "Random Flags are randomly set (or not set) before the mission starts.\nThey can e. g. be used to switch between two QRF events with different locations, based on whether a random flag was set or not.", category: "Flags")]
 	ref array<ref TILW_BaseRandomFlag> m_randomFlags;
-	
-	[Attribute("", UIWidgets.Object, desc: "DEPRECATED - USE CASUALTY FLAGS INSTEAD\nUsed to set a flag when all players of a faction were killed", category: "Flags")] // TEMP
-	ref array<ref TILW_FactionPlayersKilledFlag> m_factionPlayersKilledFlags;
 	
 	// DEBUG
 	
@@ -367,9 +364,6 @@ class TILW_MissionFrameworkEntity: GenericEntity
 				m_maxAliveFactionPlayers.Set(f, n);
 		}
 		
-		foreach (TILW_FactionPlayersKilledFlag fpkf : m_factionPlayersKilledFlags) // TEMP
-			fpkf.Evaluate();
-		
 		foreach (TILW_BaseCasualtyFlag cf : m_casualtyFlags)
 			if (TILW_FactionPlayersKilledFlag.Cast(cf))
 				cf.Evaluate();
@@ -401,15 +395,17 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// ----- UTILS -----------------------------------------------------------------------------------------------------------------------------------------------------------
 	
-	void ShowGlobalHint(string hl, string msg, int dur, array<string> fkeys)
+	void ShowGlobalHint(string hl, string msg, int dur, array<string> fkeys, bool adminOnly = false)
 	{
-		Rpc(RpcDo_ShowHint, hl, msg, dur, fkeys); // broadcast to clients
-		RpcDo_ShowHint(hl, msg, dur, fkeys); // try to show on authority
+		Rpc(RpcDo_ShowHint, hl, msg, dur, fkeys, adminOnly); // broadcast to clients
+		RpcDo_ShowHint(hl, msg, dur, fkeys, adminOnly); // try to show on authority
 	}
-	
+
 	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
-	protected void RpcDo_ShowHint(string hl, string msg, int dur, array<string> fkeys)
+	protected void RpcDo_ShowHint(string hl, string msg, int dur, array<string> fkeys, bool adminOnly)
 	{
+		if (adminOnly && !SCR_Global.IsAdmin())
+			return;
 		if (fkeys && !fkeys.IsEmpty()) {
 			SCR_FactionManager fm = SCR_FactionManager.Cast(GetGame().GetFactionManager());
 			if (!fm)
@@ -431,7 +427,27 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			return hintManager.Show(customHint, isSilent, false);
 		return false;
 	}
-	
+
+	void ShowGlobalChatInfo(string msg, bool adminOnly = true)
+	{
+		Rpc(TILW_RpcDo_ShowChatInfo, msg, adminOnly);
+		TILW_RpcDo_ShowChatInfo(msg, adminOnly);
+	}
+
+	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
+	protected void TILW_RpcDo_ShowChatInfo(string msg, bool adminOnly)
+	{
+		if (adminOnly && !SCR_Global.IsAdmin())
+			return;
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+		SCR_ChatComponent cc = SCR_ChatComponent.Cast(pc.FindComponent(SCR_ChatComponent));
+		if (!cc)
+			return;
+		cc.ShowMessage(msg);
+	}
+
 }
 
 

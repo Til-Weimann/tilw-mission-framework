@@ -1,3 +1,15 @@
+GenericEntity generic {
+ coords 112.624 1 33.697
+}
+PK_EntityDeleter deleter2 {
+ coords 103.304 1 25.309
+}
+GenericEntity : "{0A8E6C5528057189}PrefabLibrary/CainLibrary/Props/Construction/MetalSheetStack_low.et" {
+ coords 94.183 1 30.369
+}
+GenericEntity : "{8AB298E2AD8A6D42}PrefabLibrary/CainLibrary/Props/Construction/MetalSheetStack_high.et" {
+ coords 106.008 1 27.192
+}
 TILW_FactionTriggerEntity sdas1 : "{8C576D46F6579229}Prefabs/Logic/Triggers/TILW_FactionTrigger.et" {
  coords 125.533 1 84.939
  m_queryRadius 10
@@ -5,17 +17,46 @@ TILW_FactionTriggerEntity sdas1 : "{8C576D46F6579229}Prefabs/Logic/Triggers/TILW
  m_flagName "OBJ_B"
  m_ownerFactionKey "US"
 }
+Vehicle BTR1 : "{C012BB3488BEA0C2}Prefabs/Vehicles/Wheeled/BTR70/BTR70.et" {
+ coords 101.098 1 28.302
+}
+Tree : "{E2880C37E6D210A2}PrefabLibrary/CainLibrary/Vegetation/Trees/t_alnus_glutinosa_3s_aut.et" {
+ coords 100.682 0 21.961
+ scale 1.129
+}
+$grp Tree : "{E77DCFF00D80EA14}PrefabLibrary/CainLibrary/Vegetation/Trees/t_alnus_glutinosa_2s_aut.et" {
+ {
+  coords 93.926 0 21.603
+  scale 1.071
+ }
+ {
+  coords 97.665 0 32.714
+  scale 1.071
+ }
+ {
+  coords 100.694 0 20.636
+  scale 1.071
+ }
+ {
+  coords 104.328 0 33.584
+  scale 1.071
+ }
+ {
+  coords 109.277 0 20.4
+  scale 1.071
+ }
+}
 $grp SCR_IndestructibleEnvironmentalEntity : "{F281250F8F8E3755}Prefabs/Structures/Infrastructure/Naval/Breakwater/BreakwaterStone_01_stack_wall.et" {
  {
   coords 106.845 0 138.75
-  angleY -86.447
+  angles 0 -86.447 0
  }
  {
   coords 114.243 0 110.881
-  angleY -127.406
+  angles 0 -127.406 0
  }
  {
   coords 120.954 0 161.275
-  angleY -43.38
+  angles 0 -43.38 0
  }
 }
