@@ -4,8 +4,11 @@ class TILW_Flag_EntityDamageClass : ScriptComponentClass
 }
 class TILW_Flag_EntityDamage : ScriptComponent
 {
-	[Attribute(defvalue: "", uiwidget: UIWidgets.Auto, desc: "Flag that should be set if the entities damage state matches the target state / cleared if it doesn't.")]
+	[Attribute(defvalue: "", uiwidget: UIWidgets.Auto, desc: "Flag that should be adjusted if the entities damage state matches the target state / cleared if it doesn't.")]
 	string m_flagName;
+	
+	[Attribute(defvalue: "1", uiwidget: UIWidgets.Auto, desc: "Value that the flag should be adjusted by.")]
+	int m_flagValue;
 	
 	[Attribute("2", UIWidgets.ComboBox, "Select target state for the selected hit zone (destroyed/killed, repaired/healed etc.)", enums: ParamEnumArray.FromEnum(EDamageState))]
 	EDamageState m_targetState;
@@ -18,6 +21,8 @@ class TILW_Flag_EntityDamage : ScriptComponent
 	
 	[Attribute(defvalue: "1", uiwidget: UIWidgets.Auto, desc: "What the initial health of the hit zone should be.", params: "0 1 0.01")]
 	float m_initialHealth;
+	
+	EDamageState m_prevState;
 	
 	void TILW_Flag_EntityDamage(IEntityComponentSource src, IEntity ent, IEntity parent)
 	{
@@ -38,6 +43,17 @@ class TILW_Flag_EntityDamage : ScriptComponent
 		if (!hz)
 			return;
 		
+		m_prevState = hz.GetDamageState();
+		
+		if (m_prevState == m_targetState)
+		{
+			TILW_MissionFrameworkEntity mfe = TILW_MissionFrameworkEntity.GetInstance();
+			int newValue = mfe.GetMissionFlag(m_flagName) + m_flagValue;
+			mfe.AdjustMissionFlag(m_flagName, newValue);
+			if (!m_continuous)
+				return;
+		}
+		
 		hz.GetOnDamageStateChanged().Insert(OnDamageStateChangedHZ);
 		if (m_initialHealth != 1.0)
 			hz.SetHealthScaled(m_initialHealth);
@@ -47,9 +63,21 @@ class TILW_Flag_EntityDamage : ScriptComponent
 	protected void OnDamageStateChangedHZ()
 	{
 		EDamageState newState = GetTargetHitZone().GetDamageState();
-		TILW_MissionFrameworkEntity.GetInstance().AdjustMissionFlag(m_flagName, newState == m_targetState);
-		if (!m_continuous && newState == m_targetState)
-			GetTargetHitZone().GetOnDamageStateChanged().Remove(OnDamageStateChangedHZ);
+		if (newState == m_targetState)
+		{
+			TILW_MissionFrameworkEntity mfe = TILW_MissionFrameworkEntity.GetInstance();
+			int newValue = mfe.GetMissionFlag(m_flagName) + m_flagValue;
+			mfe.AdjustMissionFlag(m_flagName, newValue);
+			if (!m_continuous)
+				GetTargetHitZone().GetOnDamageStateChanged().Remove(OnDamageStateChangedHZ);
+		}
+		else if (m_prevState == m_targetState)
+		{
+			TILW_MissionFrameworkEntity mfe = TILW_MissionFrameworkEntity.GetInstance();
+			int newValue = mfe.GetMissionFlag(m_flagName) - m_flagValue;
+			mfe.AdjustMissionFlag(m_flagName, newValue);
+		}
+		m_prevState = newState;
 	}
 	
 	protected SCR_HitZone GetTargetHitZone()

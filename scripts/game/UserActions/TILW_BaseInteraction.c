@@ -25,7 +25,7 @@ class TILW_BaseInteraction : ScriptedUserAction
 		if (m_conditionFlag == "")
 			return !m_completed;
 		TILW_MissionFrameworkEntity fw = TILW_MissionFrameworkEntity.GetInstance();
-		return (!m_completed && fw && fw.IsMissionFlag(m_conditionFlag));
+		return (!m_completed && fw && fw.GetMissionFlag(m_conditionFlag));
 	}
 
 	//------------------------------------------------------------------------------------------------

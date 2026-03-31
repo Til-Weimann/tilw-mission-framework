@@ -138,7 +138,7 @@ class TILW_MatchjunctionTerm : TILW_OperationTerm
 	}
 }
 
-//! TILW_LiteralTerm gets a value from the TILW_MissionFrameworkEntity, which was previously set by another entity
+//! TILW_LiteralTerm gets a value from the TILW_MissionFrameworkEntity, which was previously set by another entity, checks it matches specified value
 [BaseContainerProps(), BaseContainerCustomStringTitleField("Literal (Mission Flag)")]
 class TILW_LiteralTerm : TILW_BaseTerm
 {
@@ -147,11 +147,41 @@ class TILW_LiteralTerm : TILW_BaseTerm
 	
 	override bool Calc()
 	{
-		return TILW_MissionFrameworkEntity.GetInstance().IsMissionFlag(m_flagName);
+		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_flagName);
 	}
 	
 	void SetFlag(string flagName)
 	{
 		m_flagName = flagName;
+	}
+}
+
+//! TILW_GreaterTerm gets a value from the TILW_MissionFrameworkEntity, which was previously set by another entity, checks it is greater than specified value
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Greater Than")]
+class TILW_GreaterTerm : TILW_BaseTerm
+{
+	[Attribute("", UIWidgets.Auto, desc: "Name of the flag (if not found, false)")]
+	protected string m_flagName;
+	[Attribute("1", UIWidgets.Auto, desc: "Exact number the flag has to be greater than", params: "0 inf 1")]
+	protected int m_matchGreater;
+	
+	override bool Calc()
+	{
+		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_flagName) > m_matchGreater;
+	}
+}
+
+//! TILW_LessTerm gets a value from the TILW_MissionFrameworkEntity, which was previously set by another entity, checks it is less than specified value
+[BaseContainerProps(), BaseContainerCustomStringTitleField("Less Than")]
+class TILW_LessTerm : TILW_BaseTerm
+{
+	[Attribute("", UIWidgets.Auto, desc: "Name of the flag (if not found, false)")]
+	protected string m_flagName;
+	[Attribute("1", UIWidgets.Auto, desc: "Exact number the flag has to be less than", params: "0 inf 1")]
+	protected int m_matchLess;
+	
+	override bool Calc()
+	{
+		return TILW_MissionFrameworkEntity.GetInstance().GetMissionFlag(m_flagName) < m_matchLess;
 	}
 }

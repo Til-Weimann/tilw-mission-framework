@@ -41,13 +41,16 @@ class TILW_BaseTriggerEntity : GenericEntity
 
 	// EFFECT SETTINGS
 
-	[Attribute("", UIWidgets.Auto, "Set a flag when the condition becomes true (clear it when false)", category: "Trigger Effect")]
+	[Attribute("", UIWidgets.Auto, "Adjust a flag when the condition becomes true (adjust opposite when false)", category: "Trigger Effect")]
 	protected string m_flagName;
+	
+	[Attribute(defvalue: "1", uiwidget: UIWidgets.Auto, desc: "Value that the flag should be adjusted by.", category: "Trigger Effect")]
+	int m_flagValue;
 
 	[Attribute("1", UIWidgets.Auto, "Only invoke SCRIPT events if the gamemode state is GAME (flags are still set, but not checked either way until game start - so mission events are not affected either way).", category: "Trigger Effect")]
 	protected bool m_eventsOnlyDuringGame;
 
-	[Attribute("0", UIWidgets.Auto, "After the effect is first triggered, prevent the trigger from doing any further queries. \nThis also prevents the flag from potentially being cleared again.", category: "Trigger Effect")]
+	[Attribute("0", UIWidgets.Auto, "After the effect is first triggered, prevent the trigger from doing any further queries. \nThis also prevents the flag from potentially being adjusted again.", category: "Trigger Effect")]
 	protected bool m_stopAfterFirstChange;
 
 
@@ -203,10 +206,17 @@ class TILW_BaseTriggerEntity : GenericEntity
 			m_changeProgress = Math.Max(0, m_changeProgress - deltaTime); // Trend back towards 0
 		}
 
-		if (shouldChange || m_firstQuery) {
+		if (shouldChange || (m_firstQuery && condition)) {
+			int adjustValue = m_flagValue;
+			if (!condition)
+				adjustValue = -m_flagValue;
+			
 			TILW_MissionFrameworkEntity mfe = TILW_MissionFrameworkEntity.GetInstance();
 			if (mfe)
-				mfe.AdjustMissionFlag(m_flagName, condition, !m_firstQuery); // Update mission flag
+			{
+				int newValue = mfe.GetMissionFlag(m_flagName) + adjustValue;
+				mfe.AdjustMissionFlag(m_flagName, newValue);
+			}
 			m_lastResult = condition;
 		}
 

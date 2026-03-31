@@ -43,9 +43,9 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	// ----- FLAG MANAGEMENT -----------------------------------------------------------------------------------------------------------------------------------------------------------
 	
-	protected ref set<string> m_flagSet = new set<string>();
+	protected ref map<string, int> m_flagSet = new map<string, int>();
 	
-	void AdjustMissionFlag(string name, bool value, bool recheck = true, bool asProxy = false)
+	void AdjustMissionFlag(string name, int value, bool recheck = true, bool asProxy = false)
 	{
 		if (m_rplComp.IsProxy() && !asProxy)
 		{
@@ -53,19 +53,11 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			return;
 		}
 		
-		if (IsMissionFlag(name) == value || name == "")
+		if (GetMissionFlag(name) == value || name == "")
 			return;
-		
-		if (value)
-		{
-			m_flagSet.Insert(name);
-			Print("TILWMF | Set flag: " + name);
-		}
-		else
-		{
-			m_flagSet.RemoveItem(name);
-			Print("TILWMF | Clear flag: " + name);
-		}
+
+		m_flagSet.Set(name, value);
+		Print("TILWMF | Set flag: " + name + ", " + value);
 		
 		if (!m_rplComp.IsProxy())
 		{
@@ -79,9 +71,9 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			m_OnFlagChanged.Invoke(name, true);
 	}
 	
-	bool IsMissionFlag(string name)
+	int GetMissionFlag(string name)
 	{
-		return m_flagSet.Contains(name);
+		return m_flagSet.Get(name);
 	}
 	
 	void RecheckConditions()
@@ -93,10 +85,10 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			missionEvent.EvalExpression();
 	}
 	
-	//! Returns a complete copy of the current flag set. For writing, always use AdjustMissionFlag! For reading individual flags, use IsMissionFlag.
-	set<string> GetFlagSetCopy()
+	//! Returns a complete copy of the current flag set. For writing, always use AdjustMissionFlag! For reading individual flags, use GetMissionFlag.
+	map<string, int> GetFlagSetCopy()
 	{
-		return set<string>.Cast(m_flagSet.Clone());
+		return map<string, int>.Cast(m_flagSet.Clone());
 	}
 	
 	// ----- FLAG REPLICATION -----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -105,7 +97,7 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	protected RplComponent m_rplComp;
 	
 	[RplRpc(RplChannel.Reliable, RplRcver.Broadcast)]
-	protected void RpcDo_BroadcastFlagChange(string name, bool value, bool recheck)
+	protected void RpcDo_BroadcastFlagChange(string name, int value, bool recheck)
 	{
 		AdjustMissionFlag(name, value, recheck, true);
 	};
@@ -116,7 +108,11 @@ class TILW_MissionFrameworkEntity: GenericEntity
 		writer.Write(flagsCount, 32);
 		
 		for (int i = 0; i < flagsCount; i++)
-			writer.WriteString(m_flagSet[i]);
+		{
+			string key = m_flagSet.GetKey(i);
+			writer.WriteString(key);
+			writer.WriteInt(m_flagSet.Get(key));
+		}
 		
 		return true;
 	}
@@ -130,7 +126,9 @@ class TILW_MissionFrameworkEntity: GenericEntity
 		{
 			string flag;
 			reader.ReadString(flag);
-			AdjustMissionFlag(flag, true, false, true);
+			int value;
+			reader.ReadInt(value);
+			AdjustMissionFlag(flag, value, false, true);
 		}
 		
 		return true;
@@ -480,6 +478,9 @@ class TILW_BaseCasualtyFlag
 {
 	[Attribute("", UIWidgets.Auto, desc: "Flag to be set when the faction reaches the given casualty ratio, or to be cleared when it's below. \nFactionPlayersKilledFlag: Only players are taken into account. \nFactionAIKilledFlag: Only AI is taken into account.")]
 	protected string m_flagName;
+	
+	[Attribute(defvalue: "1", uiwidget: UIWidgets.Auto, desc: "Value that the flag should be adjusted by.")]
+	protected int m_flagValue;
 	
 	[Attribute("", UIWidgets.Auto, desc: "Key of examined faction")]
 	protected string m_factionKey;
