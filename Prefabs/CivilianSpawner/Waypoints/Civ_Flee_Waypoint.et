@@ -1,0 +1,11 @@
+SCR_AIWaypoint : "{06E1B6EBD480C6E0}Prefabs/AI/Waypoints/AIWaypoint_ForcedMove.et" {
+ ID "552E90658B56FB63"
+ coords 7584.479 81.649 5498.708
+ CompletionRadius 1
+ CompletionYPrecision 0.1
+ m_aSettings {
+  SCR_AIGroupCharactersMovementSpeedSetting "{6691610E3D5C5F99}" {
+   m_eSpeed SPRINT
+  }
+ }
+}
