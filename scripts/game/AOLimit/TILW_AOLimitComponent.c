@@ -252,8 +252,11 @@ class TILW_AOLimitComponent : ScriptComponent
 		
 		foreach (MapItem marker : m_markers)
 		{
-			marker.SetVisible(false);
-			marker.Recycle();
+			if (marker) // patch
+			{
+				marker.SetVisible(false);
+				marker.Recycle();
+			}
 		}
 		m_markers.Clear();
 		
