@@ -278,13 +278,13 @@ class TILW_MissionFrameworkEntity: GenericEntity
 	
 	protected void InsertListeners()
 	{
-		PS_GameModeCoop gamemode = PS_GameModeCoop.Cast(GetGame().GetGameMode());
+		SCR_BaseGameMode gamemode = TILW_Lobby.GetGameMode();
 		if (!gamemode)
 			return;
 		// gamemode.GetOnPlayerKilled().Insert(PlayerUpdate);
 		gamemode.GetOnPlayerDeleted().Insert(PlayerUpdate);
 		gamemode.GetOnPlayerSpawned().Insert(PlayerUpdate);
-		gamemode.GetOnGameStateChange().Insert(GameStateChange);
+		TILW_Lobby.GetOnGameStateChange().Insert(GameStateChange);
 	}
 	
 	protected void RemoveListeners()
@@ -349,6 +349,8 @@ class TILW_MissionFrameworkEntity: GenericEntity
 			if (!cc)
 				continue;
 			if (!SCR_AIDamageHandling.IsAlive(controlled))
+				continue;
+			if (TILW_Lobby.IsSpectator(controlled))
 				continue;
 			Faction f = factionManager.GetPlayerFaction(playerId);
 			if (!f)

@@ -51,8 +51,9 @@ class TILW_PrefabSpawnerEntity : GenericEntity
 		// Insert Listeners
 		if (!m_pregameSpawn)
 		{
-			PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-			gm.GetOnGameStateChange().Insert(StateChange);
+			ScriptInvokerInt onGameStateChange = TILW_Lobby.GetOnGameStateChange();
+			if (onGameStateChange)
+				onGameStateChange.Insert(StateChange);
 		}
 		if (m_conditionFlag != "")
 		{
@@ -81,8 +82,9 @@ class TILW_PrefabSpawnerEntity : GenericEntity
 		// Remove Listeners
 		if (!m_pregameSpawn)
 		{
-			PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-			gm.GetOnGameStateChange().Remove(StateChange);
+			ScriptInvokerInt onGameStateChange = TILW_Lobby.GetOnGameStateChange();
+			if (onGameStateChange)
+				onGameStateChange.Remove(StateChange);
 		}
 		if (m_conditionFlag != "")
 		{

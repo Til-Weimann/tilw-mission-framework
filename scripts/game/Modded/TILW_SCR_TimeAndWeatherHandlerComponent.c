@@ -104,13 +104,13 @@ modded class SCR_TimeAndWeatherHandlerComponent : SCR_BaseGameModeComponent
 		if (!manager)
 			return;
 		
-		PS_GameModeCoop gamemode = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-		if (!gamemode)
+		ScriptInvokerInt onGameStateChange = TILW_Lobby.GetOnGameStateChange();
+		if (!onGameStateChange)
 			return;
-		
+
 		manager.GetHoursMinutesSeconds(m_iSavedHours, m_iSavedMinutes, m_iSavedSeconds);
-		
-		gamemode.GetOnGameStateChange().Insert(TILW_GameStateChange);
+
+		onGameStateChange.Insert(TILW_GameStateChange);
 	}
 	
 	protected void TILW_GameStateChange(SCR_EGameModeState state)
@@ -123,8 +123,8 @@ modded class SCR_TimeAndWeatherHandlerComponent : SCR_BaseGameModeComponent
 		if (manager)
 			manager.SetHoursMinutesSeconds(m_iSavedHours, m_iSavedMinutes, m_iSavedSeconds);
 		
-		PS_GameModeCoop gamemode = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-		if (gamemode)
-			gamemode.GetOnGameStateChange().Remove(TILW_GameStateChange);
+		ScriptInvokerInt onGameStateChange = TILW_Lobby.GetOnGameStateChange();
+		if (onGameStateChange)
+			onGameStateChange.Remove(TILW_GameStateChange);
 	}
 }

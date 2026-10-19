@@ -356,29 +356,7 @@ class TILW_DeleteOpenSlotsInstruction : TILW_BaseInstruction
 	
 	override void Execute()
 	{
-		PS_PlayableManager pm = PS_PlayableManager.GetInstance();
-		if (!pm)
-			return;
-		foreach (RplId id, PS_PlayableContainer pc : pm.GetPlayables())
-		{
-			PS_PlayableComponent pcomp = pc.GetPlayableComponent();
-			
-			if (!pc || pm.GetPlayerByPlayable(pcomp.GetRplId()) != -1)
-				continue;
-			
-			IEntity e = pcomp.GetOwner();
-			if (!m_factionKeys.IsEmpty())
-			{
-				SCR_ChimeraCharacter cc = SCR_ChimeraCharacter.Cast(e);
-				if (!cc || !cc.m_pFactionComponent)
-					continue;
-				Faction f = cc.m_pFactionComponent.GetAffiliatedFaction();
-				if (!f || !m_factionKeys.Contains(f.GetFactionKey()))
-					continue;
-			}
-			
-			SCR_EntityHelper.DeleteEntityAndChildren(e);
-		}
+		TILW_Lobby.RemoveOpenSlots(m_factionKeys);
 	}
 
 }
@@ -435,11 +413,9 @@ class TILW_EditRespawnTicketsInstruction : TILW_BaseInstruction
 	
 	override void Execute()
 	{
-		BaseGameMode bgm = GetGame().GetGameMode();
-		if (!bgm)
+		if (!TILW_Lobby.GetGameMode())
 			return;
-		PS_GameModeCoop gm = PS_GameModeCoop.Cast(bgm);
-		int num = gm.TILW_GetFactionTicketCount(m_factionKey);
+		int num = TILW_Lobby.GetFactionTickets(m_factionKey);
 		switch (m_operation) {
 			case TILW_EVariableOperation.SET:
 				num = m_amount;
@@ -459,25 +435,10 @@ class TILW_EditRespawnTicketsInstruction : TILW_BaseInstruction
 			default:
 				return;
 		}
-		gm.TILW_SetFactionTicketCount(m_factionKey, num);
-		
-		if (m_allowSpecRespawn) {
-			PS_PlayableManager playableManager = PS_PlayableManager.GetInstance();
-			array<PS_PlayableContainer> playableContainers = playableManager.GetPlayablesSorted();
-			foreach (PS_PlayableContainer container : playableContainers)
-			{
-				PS_PlayableComponent pcomp = container.GetPlayableComponent();
-				SCR_CharacterDamageManagerComponent damageManager = pcomp.GetCharacterDamageManagerComponent();
-				EDamageState damageState = damageManager.GetState();
-				if (damageState == EDamageState.DESTROYED)
-				{
-					int playerId = playableManager.GetPlayerByPlayableRemembered(pcomp.GetRplId());
-					if (playerId == -1)
-						continue;
-					gm.TryRespawn(pcomp.GetRplId(), playerId);
-				}
-			}
-		}
+		TILW_Lobby.SetFactionTickets(m_factionKey, num);
+
+		if (m_allowSpecRespawn)
+			TILW_Lobby.RespawnDeadPlayers(m_factionKey);
 	}
 }
 
@@ -512,21 +473,7 @@ class TILW_EditMapItemInstruction : TILW_BaseInstruction
 			IEntity itemEntity = GetGame().GetWorld().FindEntityByName(itemName);
 			if (!itemEntity)
 				continue;
-			PS_ManualMarker c1 = PS_ManualMarker.Cast(itemEntity);
-			PS_MissionDescription c2 = PS_MissionDescription.Cast(itemEntity);
-			if (c1)
-				c1.SetVisibleForEmptyFaction(m_visibleForEmpty);
-			if (c2)
-				c2.SetVisibleForEmptyFaction(m_visibleForEmpty);
-			SCR_FactionManager factionManager = SCR_FactionManager.Cast(GetGame().GetFactionManager());
-			foreach (TILW_FactionVisibility fv : m_factionVisibility)
-			{
-				Faction f = factionManager.GetFactionByKey(fv.m_factionKey);
-				if (c1)
-					c1.SetVisibleForFaction(f, fv.m_visible);
-				if (c2)
-					c2.SetVisibleForFaction(f, fv.m_visible);
-			}
+			TILW_Lobby.SetMapItemVisibility(itemEntity, m_visibleForEmpty, m_factionVisibility);
 		}
 	}
 }

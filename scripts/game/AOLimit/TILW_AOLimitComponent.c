@@ -80,9 +80,27 @@ class TILW_AOLimitComponent : ScriptComponent
 
 		if (m_visibility == TILW_EVisibilityMode.FACTION)
 		{
-			PS_PlayableManager pm = PS_PlayableManager.GetInstance();
-			pm.GetOnFactionChange().Insert(FactionChange);
+			PlayerController pc = GetGame().GetPlayerController();
+			if (pc)
+				m_lastFactionKey = TILW_Lobby.GetPlayerFactionKey(pc.GetPlayerId());
+			TILW_Lobby.AddFactionChangeListener(this);
 		}
+	}
+
+	protected FactionKey m_lastFactionKey;
+
+	//! The lobby's slotting changed (Coalition Lobby) - pass it on if the local player's faction did
+	void LobbySlottingChanged()
+	{
+		PlayerController pc = GetGame().GetPlayerController();
+		if (!pc)
+			return;
+		FactionKey factionKey = TILW_Lobby.GetPlayerFactionKey(pc.GetPlayerId());
+		if (factionKey == m_lastFactionKey)
+			return;
+		FactionKey factionKeyOld = m_lastFactionKey;
+		m_lastFactionKey = factionKey;
+		FactionChange(pc.GetPlayerId(), factionKey, factionKeyOld);
 	}
 
 	void FactionChange(int playerId, FactionKey factionKey, FactionKey factionKeyOld)
@@ -330,9 +348,8 @@ class TILW_AOLimitComponent : ScriptComponent
 			case TILW_EVisibilityMode.ALL:
 				break;
 			case TILW_EVisibilityMode.FACTION:
-				PS_PlayableManager pm = PS_PlayableManager.GetInstance();
 				PlayerController pc = GetGame().GetPlayerController();
-				if (pm && pc && m_factionKeys.Contains(pm.GetPlayerFactionKey(pc.GetPlayerId())))
+				if (pc && m_factionKeys.Contains(TILW_Lobby.GetPlayerFactionKey(pc.GetPlayerId())))
 					break;
 				else
 					return;

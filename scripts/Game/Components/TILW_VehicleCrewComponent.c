@@ -49,11 +49,11 @@ class TILW_VehicleCrewComponent: ScriptComponent
 	
 	protected void Init()
 	{
-		PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
+		SCR_BaseGameMode gm = TILW_Lobby.GetGameMode();
 		if (!gm)
 			return;
-		
-		gm.GetOnGameStateChange().Insert(GameStateChange);
+
+		TILW_Lobby.GetOnGameStateChange().Insert(GameStateChange);
 		GameStateChange(gm.GetState());
 	}
 	
@@ -62,9 +62,9 @@ class TILW_VehicleCrewComponent: ScriptComponent
 		if (!m_pregameSpawn && state != SCR_EGameModeState.GAME)
 			return;
 		
-		PS_GameModeCoop gm = PS_GameModeCoop.Cast(GetGame().GetGameMode());
-		if (gm)
-			gm.GetOnGameStateChange().Remove(GameStateChange);
+		ScriptInvokerInt onGameStateChange = TILW_Lobby.GetOnGameStateChange();
+		if (onGameStateChange)
+			onGameStateChange.Remove(GameStateChange);
 		
 		if (m_crewConfig)
 		{
