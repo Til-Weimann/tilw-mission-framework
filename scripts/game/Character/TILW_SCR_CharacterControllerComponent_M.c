@@ -39,8 +39,7 @@ modded class SCR_CharacterControllerComponent : CharacterControllerComponent
 		if (!cc)
 			return;
 		// Is not playable?
-		PS_PlayableComponent pc = PS_PlayableComponent.Cast(cc.FindComponent(PS_PlayableComponent));
-		if (!pc || pc.GetPlayable())
+		if (!TILW_Lobby.IsMissionAI(cc))
 			return;
 		// Is not a player?
 		if (EntityUtils.IsPlayer(cc))

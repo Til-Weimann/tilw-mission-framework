@@ -40,14 +40,15 @@ class TILW_FactionTriggerEntity : TILW_BaseTriggerEntity
 	{
 		if (IsEntityDestroyed(cc))
 			return false; // Not alive
+		if (TILW_Lobby.IsSpectator(cc))
+			return false; // Spectating
 		if (!IsWithinShape(cc.GetOrigin()))
 			return false; // Not within shape
 		if (!EntityUtils.IsPlayer(cc))
 		{
 			if (m_playersOnly)
 				return false; // Only players allowed
-			PS_PlayableComponent pc = PS_PlayableComponent.Cast(cc.FindComponent(PS_PlayableComponent));
-			if (pc && pc.GetPlayable())
+			if (TILW_Lobby.IsUnplayedSlotCharacter(cc))
 				return false; // Not slotted
 		}
 		FactionKey fkey = GetFactionKey(cc);
