@@ -33,7 +33,7 @@
 			m_hManualMarkerComponent.OnMouseLeave(null, null, 0, 0);
 			m_hManualMarkerComponent.m_bringToFront = m_bringToFront;
 			// Enable every frame updating
-			SetEventMask(EntityEvent.POSTFRAME);
+			GetGame().GetCallqueue().CallLater(UpdateMapWidget, 0, true);
 		}
 	}
 #endif
