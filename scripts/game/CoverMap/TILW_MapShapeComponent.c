@@ -148,21 +148,21 @@ class TILW_MapShapeComponent : ScriptComponent
 	{
 		m_points3D = {};
 		
-		PolylineShapeEntity pse = PolylineShapeEntity.Cast(GetOwner());
-		if (!pse) {
+		ShapeEntity se = ShapeEntity.Cast(GetOwner());
+		if (!se) {
 			Print("TILW_MapShapeComponent | Owner entity (" + GetOwner() + ") is not a polyline!", LogLevel.WARNING);
 			return;
 		}
-		if (pse.GetPointCount() < 2 + m_drawArea) {
+		if (se.GetPointCount() < 2 + m_drawArea) {
 			Print("TILW_MapShapeComponent | Owner entity (" + GetOwner() + ") does not have enough points!", LogLevel.WARNING);
 			return;
 		}
-		pse.GetPointsPositions(m_points3D);
+		se.GetPointsPositions(m_points3D);
 		
 		for (int i = 0; i < m_points3D.Count(); i++)
-			m_points3D[i] = pse.CoordToParent(m_points3D[i]);
+			m_points3D[i] = se.CoordToParent(m_points3D[i]);
 		
-		m_isClosed = pse.IsClosed();
+		m_isClosed = se.IsClosed();
 		
 		OnPoints3DChange(false);
 	}
