@@ -30,28 +30,18 @@ class TILW_SafeZoneComponent : ScriptComponent
 	{
 		super.OnPostInit(owner);
 
-		Print("[TILW_SafeZone] OnPostInit reached on " + owner.GetName() + " (class: " + owner.ClassName() + ")");
-
 		if (SCR_Global.IsEditMode())
-		{
-			Print("[TILW_SafeZone] Skipping: edit mode.");
 			return;
-		}
 
 		// Server only. Clients never touch damage state.
 		if (!Replication.IsServer())
-		{
-			Print("[TILW_SafeZone] Skipping: not the server.");
 			return;
-		}
 
 		if (!s_aZones)
 			s_aZones = new array<TILW_SafeZoneComponent>();
 		s_aZones.Insert(this);
 
 		GetGame().GetCallqueue().CallLater(CheckZone, CHECK_INTERVAL_MS, true);
-
-		Print("[TILW_SafeZone] Initialised on " + owner.GetName());
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -125,7 +115,7 @@ class TILW_SafeZoneComponent : ScriptComponent
 		m_bPolygonReady = true;
 		m_bErrorLogged = false;
 
-		Print("[TILW_SafeZone] Polygon built with " + points.Count() + " points.");
+		Print("[TILW_SafeZone] Initialised on " + GetOwner().GetName() + " (" + points.Count() + " points).");
 		return true;
 	}
 
@@ -267,7 +257,6 @@ class TILW_SafeZoneComponent : ScriptComponent
 	{
 		SetDamageEnabled(entity, false);
 		m_aProtected.Insert(entity);
-		Print("[TILW_SafeZone] Protecting " + entity.ClassName() + " (" + entity.GetName() + ") in zone " + GetOwner().GetName());
 	}
 
 	//------------------------------------------------------------------------------------------------
@@ -288,7 +277,6 @@ class TILW_SafeZoneComponent : ScriptComponent
 		}
 
 		SetDamageEnabled(entity, true);
-		Print("[TILW_SafeZone] Released " + entity.ClassName() + " (" + entity.GetName() + ") from zone " + GetOwner().GetName());
 	}
 
 	//------------------------------------------------------------------------------------------------
