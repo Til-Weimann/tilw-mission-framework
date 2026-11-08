@@ -3,6 +3,9 @@ PolylineShapeEntity {
  components {
   TILW_MapShapeComponent "{6508F5526836BC09}" {
   }
+  TILW_MapTextComponent "{69650B6C397BDD7D}" {
+   Enabled 0
+  }
   RplComponent "{6508F5526836BC0A}" {
    Streamable Disabled
   }
