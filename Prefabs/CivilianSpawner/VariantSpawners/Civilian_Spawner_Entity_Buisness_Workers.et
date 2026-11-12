@@ -1,0 +1,6 @@
+CN_CivilianSpawnerEntity : "{F698EE55E078C910}Prefabs/CivilianSpawner/Civilian_Spawner_Entity.et" {
+ ID "6692DAB930AA0ED6"
+ m_aigroupPrefabs {
+  "{3A7E9854AF6ADC04}Prefabs/CivilianSpawner/Groups/Random_Civ_Buisness_Group.et"
+ }
+}

@@ -1,0 +1,7 @@
+SCR_AIGroup : "{7643DFD2F1C9E88C}Prefabs/CivilianPopulator/Groups/Random_Civ_Group.et" {
+ ID "0000000000000001"
+ coords 7578.971 82.29 5510.35
+ m_aUnitPrefabSlots {
+  "{5882AE7A4543AFB4}Prefabs/Characters/Factions/CIV/Dockworker/Character_CIV_Dockworker_Randomized.et"
+ }
+}

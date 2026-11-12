@@ -1,0 +1,7 @@
+SCR_AIGroup : "{7643DFD2F1C9E88C}Prefabs/CivilianPopulator/Groups/Random_Civilian_Group.et" {
+ ID "0000000000000001"
+ coords 7582.228 81.815 5508.436
+ m_aUnitPrefabSlots {
+  "{B3AB6D12D247DDB5}Prefabs/Characters/Factions/CIV/Businessman/Character_CIV_Businessman_Randomized.et"
+ }
+}

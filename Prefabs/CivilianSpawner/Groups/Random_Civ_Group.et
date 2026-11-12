@@ -1,0 +1,8 @@
+SCR_AIGroup : "{C1E39427E43B1E79}Prefabs/Groups/INDFOR/Group_FIA_AmmoTeam.et" {
+ ID "0000000000000001"
+ coords 7624.085 76.069 5448.692
+ m_faction "CIV"
+ m_aUnitPrefabSlots {
+  "{22E43956740A6794}Prefabs/Characters/Factions/CIV/GenericCivilians/Character_CIV_Randomized.et"
+ }
+}
